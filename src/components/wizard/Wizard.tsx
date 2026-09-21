@@ -259,7 +259,7 @@ export function Wizard({ token }: { token: string }) {
   if (status === "notfound") {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-4 px-6 py-24">
-        <h1 className="font-display text-5xl uppercase leading-[0.9]">Link inválido</h1>
+        <h1 className="font-display text-5xl uppercase leading-[0.95]">Link inválido</h1>
         <p className="leading-relaxed text-muted">
           Este link de briefing não existe ou expirou. Confira o endereço ou peça um novo link a quem te enviou.
         </p>
@@ -270,7 +270,7 @@ export function Wizard({ token }: { token: string }) {
   if (status === "error" || !screen) {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-6 py-24">
-        <h1 className="font-display text-5xl uppercase leading-[0.9]">Sem conexão</h1>
+        <h1 className="font-display text-5xl uppercase leading-[0.95]">Sem conexão</h1>
         <p className="leading-relaxed text-muted">Não foi possível carregar o briefing. Verifique sua internet e tente de novo.</p>
         <Button variant="secondary" onClick={() => window.location.reload()} className="self-start">
           Tentar de novo
@@ -352,7 +352,7 @@ export function Wizard({ token }: { token: string }) {
                   <Ornament className="mr-2" />
                   Etapa {screen.step.id}
                 </p>
-                <h1 ref={titleRef} tabIndex={-1} className="mt-4 font-display text-5xl uppercase leading-[0.9] tracking-[-0.01em] focus:outline-none sm:text-6xl">
+                <h1 ref={titleRef} tabIndex={-1} className="mt-4 font-display text-5xl uppercase leading-[0.95] tracking-[-0.01em] focus:outline-none sm:text-6xl">
                   {screen.step.title}
                 </h1>
                 {screen.step.subtitle ? <p className="mt-4 leading-relaxed text-muted">{screen.step.subtitle}</p> : null}
@@ -426,7 +426,7 @@ function ReviewView({
         <Ornament className="mr-2" />
         Revisão
       </p>
-      <h1 ref={titleRef} tabIndex={-1} className="mt-4 font-display text-5xl uppercase leading-[0.9] tracking-[-0.01em] focus:outline-none sm:text-6xl">
+      <h1 ref={titleRef} tabIndex={-1} className="mt-4 font-display text-5xl uppercase leading-[0.95] tracking-[-0.01em] focus:outline-none sm:text-6xl">
         Confira antes de enviar
       </h1>
       <p className="mt-4 leading-relaxed text-muted">Toque em editar para ajustar qualquer resposta.</p>
@@ -504,7 +504,7 @@ function ReadOnlyView({
         <Ornament className="mr-2" />
         Briefing enviado ✓
       </p>
-      <h1 ref={titleRef} tabIndex={-1} className="mt-4 font-display text-5xl uppercase leading-[0.9] tracking-[-0.01em] focus:outline-none sm:text-6xl">
+      <h1 ref={titleRef} tabIndex={-1} className="mt-4 font-display text-5xl uppercase leading-[0.95] tracking-[-0.01em] focus:outline-none sm:text-6xl">
         Recebido. Obrigado!
       </h1>
       <p className="mt-4 leading-relaxed text-muted">

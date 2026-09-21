@@ -90,7 +90,7 @@ export default async function AdminListPage({
             <Ornament className="mr-2" />
             {(rows ?? []).length} briefing{(rows ?? []).length === 1 ? "" : "s"}
           </p>
-          <h1 className="mt-4 font-display text-5xl uppercase leading-[0.9] sm:text-6xl">Briefings</h1>
+          <h1 className="mt-4 font-display text-5xl uppercase leading-[0.95] sm:text-6xl">Briefings</h1>
           <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
             {counts.concluido} concluídos · {counts.em_andamento} em andamento · {counts.rascunho} rascunhos
           </p>

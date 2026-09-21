@@ -109,7 +109,7 @@ export default async function AdminDetailPage({ params }: { params: Promise<{ id
             {formatAnswer("project_type", { value: briefing.project_type ?? "" })}{" "}
             {briefing.viewed_at ? "" : "· não lido"}
           </p>
-          <h1 className="mt-4 font-display text-5xl uppercase leading-[0.9] sm:text-6xl">
+          <h1 className="mt-4 font-display text-5xl uppercase leading-[0.95] sm:text-6xl">
             {briefing.client_name || "Sem nome"}
           </h1>
           <p className="mt-3 leading-relaxed text-muted">
