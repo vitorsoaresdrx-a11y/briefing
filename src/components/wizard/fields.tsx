@@ -1,6 +1,6 @@
 "use client";
 
-import type { StoredFile } from "@/lib/briefing/format";
+import type { AudioInfo, FileInfo } from "@/lib/briefing/media";
 import type { Answer, Answers, Question } from "@/lib/briefing/types";
 import { Button } from "@/components/ui/Button";
 import { Chips } from "@/components/ui/Chips";
@@ -10,7 +10,8 @@ import { LinkListInput } from "@/components/ui/LinkListInput";
 import { OptionCard } from "@/components/ui/OptionCard";
 import { Slider } from "@/components/ui/Slider";
 import { Textarea } from "@/components/ui/Textarea";
-import { FileField } from "./FileField";
+import { AudioRecorder, type AudioSync } from "@/components/audio/AudioRecorder";
+import { FileField, type FileSync } from "./FileField";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -63,11 +64,18 @@ interface FieldProps {
   question: Question;
   answers: Answers;
   setAnswer: (id: string, answer: Answer) => void;
+  token: string;
+  audios: AudioInfo[];
+  files: FileInfo[];
+  onMediaSync: (result: { answers: Answers; audios?: AudioInfo[]; files?: FileInfo[] }) => void;
 }
 
-export function QuestionField({ question: q, answers, setAnswer }: FieldProps) {
+export function QuestionField({ question: q, answers, setAnswer, token, audios, files, onMediaSync }: FieldProps) {
   const ans = answers[q.id];
   const set = (value: unknown) => setAnswer(q.id, { value });
+  // Edição manual preserva o áudio vinculado (transcrição continua editável).
+  const setText = (value: string) =>
+    setAnswer(q.id, { value, ...(ans?.audioId ? { audioId: ans.audioId } : {}) });
 
   let control: React.ReactNode = null;
 
@@ -102,12 +110,23 @@ export function QuestionField({ question: q, answers, setAnswer }: FieldProps) {
         <Input label={q.label} type="url" inputMode="url" placeholder={q.placeholder ?? "https://"} hint={q.help} value={str(ans)} onChange={(e) => set(e.target.value)} />
       );
       break;
-    case "textarea":
-      // TODO(Fase 3): gravador de áudio (AudioRecorder) nas perguntas com allowAudio.
+    case "textarea": {
+      const latestAudio = audios.filter((a) => a.question_id === q.id).at(-1);
       control = (
-        <Textarea label={q.label} placeholder={q.placeholder} hint={q.help} value={str(ans)} onChange={(e) => set(e.target.value)} />
+        <div className="flex flex-col gap-3">
+          <Textarea label={q.label} placeholder={q.placeholder} hint={q.help} value={str(ans)} onChange={(e) => setText(e.target.value)} />
+          {q.allowAudio ? (
+            <AudioRecorder
+              token={token}
+              questionId={q.id}
+              existingAudioId={ans?.audioId ?? latestAudio?.id}
+              onSync={(r: AudioSync) => onMediaSync(r)}
+            />
+          ) : null}
+        </div>
       );
       break;
+    }
     case "single": {
       const current = typeof ans?.value === "string" ? ans.value : "";
       control = (
@@ -194,12 +213,17 @@ export function QuestionField({ question: q, answers, setAnswer }: FieldProps) {
       );
       break;
     case "file": {
-      const files = (Array.isArray(ans?.value) ? ans.value : []) as StoredFile[];
       control = (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium text-white">{q.label}</p>
           {q.help ? <p className="text-sm text-muted">{q.help}</p> : null}
-          <FileField questionId={q.id} label={q.label} kind={q.fileKind} maxItems={q.maxItems ?? 5} value={files} onChange={set} />
+          <FileField
+            token={token}
+            questionId={q.id}
+            maxItems={q.maxItems ?? 5}
+            files={files.filter((f) => f.question_id === q.id)}
+            onSync={(r: FileSync) => onMediaSync(r)}
+          />
         </div>
       );
       break;

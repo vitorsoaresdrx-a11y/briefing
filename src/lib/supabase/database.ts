@@ -37,6 +37,8 @@ export type Database = {
         Relationships: [];
       };
       briefing_files: {
+        // Sem coluna question_id (segue o schema): a pergunta é derivada do
+        // storage_path, que segue <briefing_id>/<question_id>/<uuid>.<ext>.
         Row: {
           id: string;
           briefing_id: string;

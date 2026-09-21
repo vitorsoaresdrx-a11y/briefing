@@ -5,6 +5,7 @@ import type { Answers } from "@/lib/briefing/types";
 import {
   denormalizedColumns,
   getBriefingByToken,
+  listMedia,
   notFound,
   serviceUnavailable,
 } from "@/lib/briefing/server-helpers";
@@ -36,6 +37,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   try {
     const briefing = await getBriefingByToken(token);
     if (!briefing) return notFound();
+    const supabase = createAdminClient();
+    const { audios, files } = await listMedia(supabase, briefing.id);
     return Response.json({
       token: briefing.token,
       status: briefing.status,
@@ -43,8 +46,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
       answers: briefing.answers,
       completeness: briefing.completeness,
       pending_fields: briefing.pending_fields,
-      audios: [],
-      files: [],
+      audios,
+      files,
     });
   } catch (e) {
     return serviceUnavailable(e);

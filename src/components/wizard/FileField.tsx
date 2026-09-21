@@ -1,64 +1,124 @@
 "use client";
 
 import * as React from "react";
-import { FileUp, X } from "lucide-react";
-import type { StoredFile } from "@/lib/briefing/format";
+import { FileUp, Loader2, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/browser";
+import { FILES_BUCKET, FILES_MAX_BYTES, type FileInfo } from "@/lib/briefing/media";
+import type { Answers } from "@/lib/briefing/types";
 
-const ACCEPT_BY_KIND: Record<string, string> = {
-  logo: "image/*",
-  foto: "image/*",
-  documento: ".pdf,.doc,.docx,.txt,image/*",
-  outro: "*/*",
+export type FileSync = {
+  answers: Answers;
+  files: FileInfo[];
 };
 
-const MAX_BYTES = 20 * 1024 * 1024;
+const MAX_MB = Math.round(FILES_MAX_BYTES / (1024 * 1024));
 
-interface FileFieldProps {
-  questionId: string;
-  label: string;
-  kind?: "logo" | "foto" | "documento" | "outro";
-  maxItems?: number;
-  value: StoredFile[];
-  onChange: (files: StoredFile[]) => void;
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/**
- * Fase 2: seleção local com metadados persistidos nas respostas.
- * TODO(Fase 3): trocar por upload real via signed URL (Storage).
- */
-export function FileField({ questionId, label, kind = "outro", maxItems = 5, value, onChange }: FileFieldProps) {
+export function FileField({
+  token,
+  questionId,
+  maxItems = 5,
+  files,
+  onSync,
+  disabled = false,
+}: {
+  token: string;
+  questionId: string;
+  maxItems?: number;
+  files: FileInfo[];
+  onSync: (result: FileSync) => void;
+  disabled?: boolean;
+}) {
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = React.useState<string[]>([]);
   const [error, setError] = React.useState<string | null>(null);
-  const canAdd = value.length < maxItems;
+  const busy = uploading.length > 0;
 
-  function pickFiles(list: FileList | null) {
+  async function uploadOne(file: File) {
+    const upRes = await fetch(`/api/briefing/${token}/upload-url`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        bucket: FILES_BUCKET,
+        question_id: questionId,
+        file_name: file.name,
+        mime_type: file.type || "application/octet-stream",
+        size: file.size,
+      }),
+    });
+    if (!upRes.ok) {
+      const data = (await upRes.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(data?.error ?? "Falha ao preparar envio.");
+    }
+    const { path, token: upToken } = (await upRes.json()) as { path: string; token: string };
+
+    const supabase = createClient();
+    const { error: upError } = await supabase.storage
+      .from(FILES_BUCKET)
+      .uploadToSignedUrl(path, upToken, file);
+    if (upError) throw upError;
+
+    const regRes = await fetch(`/api/briefing/${token}/file`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        question_id: questionId,
+        storage_path: path,
+        file_name: file.name,
+        mime_type: file.type || "application/octet-stream",
+        size_bytes: file.size,
+      }),
+    });
+    if (!regRes.ok) {
+      const data = (await regRes.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(data?.error ?? "Falha ao registrar arquivo.");
+    }
+    return (await regRes.json()) as FileSync;
+  }
+
+  async function pickFiles(list: FileList | null) {
     setError(null);
-    if (!list) return;
-    const next = [...value];
-    for (const file of Array.from(list)) {
-      if (next.length >= maxItems) {
-        setError(`Limite de ${maxItems} arquivos.`);
-        break;
-      }
-      if (file.size > MAX_BYTES) {
-        setError(`"${file.name}" passa de 20 MB e foi ignorado.`);
+    if (!list || disabled) return;
+    const selected = Array.from(list);
+    if (files.length + selected.length > maxItems) {
+      setError(`Limite de ${maxItems} arquivos nesta pergunta.`);
+      return;
+    }
+    for (const file of selected) {
+      if (file.size > FILES_MAX_BYTES) {
+        setError(`"${file.name}" passa de ${MAX_MB} MB e foi ignorado.`);
         continue;
       }
-      if (!next.some((f) => f.name === file.name && f.size === file.size)) {
-        next.push({ name: file.name, size: file.size });
+      setUploading((u) => [...u, file.name]);
+      try {
+        const result = await uploadOne(file);
+        onSync(result);
+      } catch (e) {
+        setError(e instanceof Error ? `"${file.name}": ${e.message}` : `Falha ao enviar "${file.name}".`);
+      } finally {
+        setUploading((u) => u.filter((n) => n !== file.name));
       }
     }
-    onChange(next);
   }
 
-  function removeAt(index: number) {
-    onChange(value.filter((_, i) => i !== index));
-  }
-
-  function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  async function removeFile(id: string) {
+    setError(null);
+    try {
+      const res = await fetch(`/api/briefing/${token}/file`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ file_id: id }),
+      });
+      if (!res.ok) throw new Error("Falha ao remover.");
+      onSync((await res.json()) as FileSync);
+    } catch {
+      setError("Não foi possível remover. Tente de novo.");
+    }
   }
 
   return (
@@ -67,51 +127,62 @@ export function FileField({ questionId, label, kind = "outro", maxItems = 5, val
         ref={inputRef}
         id={questionId}
         type="file"
-        accept={ACCEPT_BY_KIND[kind]}
         multiple={maxItems > 1}
+        disabled={disabled || busy}
         className="sr-only"
-        aria-label={label}
+        aria-label="Escolher arquivos"
         onChange={(e) => {
-          pickFiles(e.target.files);
+          void pickFiles(e.target.files);
           e.target.value = "";
         }}
       />
-      {value.length > 0 ? (
+      {files.length > 0 ? (
         <ul className="flex flex-col gap-2">
-          {value.map((file, i) => (
+          {files.map((file) => (
             <li
-              key={`${file.name}-${file.size}`}
+              key={file.id}
               className="flex items-center gap-3 rounded-ctl border border-line bg-ink-2 px-4 py-3"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-white">{file.name}</span>
+                <span className="block truncate text-sm text-white">{file.file_name}</span>
                 <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-                  {formatSize(file.size)}
+                  {formatSize(file.size_bytes ?? 0)} · Enviado ✓
                 </span>
               </span>
-              <button
-                type="button"
-                onClick={() => removeAt(i)}
-                aria-label={`Remover ${file.name}`}
-                className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-ctl text-muted hover:bg-white/5 hover:text-white"
-              >
-                <X size={18} />
-              </button>
+              {!disabled ? (
+                <button
+                  type="button"
+                  onClick={() => void removeFile(file.id)}
+                  aria-label={`Remover ${file.file_name}`}
+                  className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-ctl text-muted hover:bg-white/5 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              ) : null}
             </li>
           ))}
         </ul>
       ) : null}
-      {canAdd ? (
+      {uploading.map((name) => (
+        <p key={name} role="status" className="flex items-center gap-3 text-sm text-muted">
+          <Loader2 size={16} aria-hidden="true" className="animate-spin text-burgundy-glow" />
+          Enviando {name}…
+        </p>
+      ))}
+      {!disabled && files.length < maxItems ? (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-ctl border border-dashed border-line px-6 text-[15px] text-muted transition-colors hover:border-white/25 hover:text-white"
+          disabled={busy}
+          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-ctl border border-dashed border-line px-6 text-[15px] text-muted transition-colors hover:border-white/25 hover:text-white disabled:opacity-50"
         >
           <FileUp size={18} aria-hidden="true" />
-          {value.length === 0 ? "Escolher arquivos" : `Adicionar (${value.length}/${maxItems})`}
+          {files.length === 0 ? "Escolher arquivos" : `Adicionar (${files.length}/${maxItems})`}
         </button>
       ) : null}
-      <p className="text-sm text-muted">Formatos: imagens, PDF e documentos (até 20 MB cada).</p>
+      <p className="text-sm text-muted">
+        Imagens, PDF e documentos (até {MAX_MB} MB cada). O envio é imediato.
+      </p>
       {error ? (
         <p role="alert" className="text-sm text-burgundy-glow">
           {error}

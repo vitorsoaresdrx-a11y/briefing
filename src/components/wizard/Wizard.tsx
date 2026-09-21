@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { visibleQuestions, visibleSteps } from "@/lib/briefing/conditions";
 import { formatAnswer } from "@/lib/briefing/format";
+import type { AudioInfo, FileInfo } from "@/lib/briefing/media";
 import type { Answer, Answers, Question, Step } from "@/lib/briefing/types";
 import { Button } from "@/components/ui/Button";
 import { Ornament } from "@/components/ui/Ornament";
@@ -25,6 +26,8 @@ type LoadData = {
   status: "rascunho" | "em_andamento" | "concluido";
   current_step: string | null;
   answers: Answers;
+  audios: AudioInfo[];
+  files: FileInfo[];
 };
 
 function buildScreens(answers: Answers): Screen[] {
@@ -62,6 +65,8 @@ export function Wizard({ token }: { token: string }) {
   const [readOnly, setReadOnly] = React.useState(false);
   const [submitState, setSubmitState] = React.useState<"idle" | "sending" | "error">("idle");
   const [missing, setMissing] = React.useState<{ id: string; label: string }[]>([]);
+  const [audios, setAudios] = React.useState<AudioInfo[]>([]);
+  const [files, setFiles] = React.useState<FileInfo[]>([]);
 
   const titleRef = React.useRef<HTMLHeadingElement>(null);
   const answersRef = React.useRef(answers);
@@ -137,6 +142,8 @@ export function Wizard({ token }: { token: string }) {
         }
         skipSaveRef.current = true;
         setAnswers(loaded);
+        setAudios(data.audios ?? []);
+        setFiles(data.files ?? []);
         setPos(start);
         setReadOnly(data.status === "concluido");
         setStatus("ready");
@@ -194,6 +201,14 @@ export function Wizard({ token }: { token: string }) {
   function setAnswer(id: string, answer: Answer) {
     setMissing((m) => m.filter((x) => x.id !== id));
     setAnswers((prev) => ({ ...prev, [id]: answer }));
+  }
+
+  /** Aplica respostas vindas das rotas de mídia (já salvas no servidor). */
+  function applyServerUpdate(result: { answers: Answers; audios?: AudioInfo[]; files?: FileInfo[] }) {
+    skipSaveRef.current = true;
+    setAnswers(result.answers);
+    if (result.audios) setAudios(result.audios);
+    if (result.files) setFiles(result.files);
   }
 
   function go(positive: 1 | -1) {
@@ -349,7 +364,16 @@ export function Wizard({ token }: { token: string }) {
 
                 <div className="mt-10 flex flex-col gap-10">
                   {screen.questions.map((q) => (
-                    <QuestionField key={q.id} question={q} answers={answers} setAnswer={setAnswer} />
+                    <QuestionField
+                      key={q.id}
+                      question={q}
+                      answers={answers}
+                      setAnswer={setAnswer}
+                      token={token}
+                      audios={audios}
+                      files={files}
+                      onMediaSync={applyServerUpdate}
+                    />
                   ))}
                 </div>
 
