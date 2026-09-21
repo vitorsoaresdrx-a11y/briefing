@@ -36,12 +36,12 @@ export default function Home() {
     <div className="flex min-h-full flex-col bg-black text-white">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-start px-6 py-6 sm:px-10">
         <Image
-          src="/logoladoalado.png"
+          src="/logoladoalado_fullscreen.png"
           alt="Logo"
-          width={300}
-          height={100}
+          width={1084}
+          height={183}
           priority
-          className="block h-auto w-56 sm:w-80"
+          className="block h-auto w-72 max-w-[80vw] sm:w-[26rem]"
         />
         <p className="ml-auto hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:block">
           ≈ 10 min · sem cadastro

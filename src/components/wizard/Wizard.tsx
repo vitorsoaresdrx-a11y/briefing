@@ -298,7 +298,7 @@ export function Wizard({ token }: { token: string }) {
       <div className="mx-auto w-full max-w-3xl px-6 pt-6 sm:px-10">
         <ProgressBar current={current} total={total} minutesLeft={minutesLeft} />
         <header className="flex items-center justify-between py-5">
-          <Image src="/logoladoalado.png" alt="Logo" width={120} height={40} className="h-10 w-auto" />
+          <Image src="/logoladoalado_fullscreen.png" alt="Logo" width={360} height={61} className="h-auto w-44 sm:w-60" />
           <div className="text-right">
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted" aria-live="polite">
               {saveState === "saving" ? "Salvando…" : saveState === "offline" ? "Sem conexão, tentando de novo" : "Salvo ✓"}

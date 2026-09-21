@@ -34,7 +34,7 @@ export default async function ObrigadoPage({ params }: { params: Promise<{ token
   return (
     <div className="flex min-h-full flex-col bg-black text-white">
       <header className="mx-auto w-full max-w-3xl px-6 py-6 sm:px-10">
-        <Image src="/logoladoalado.png" alt="Logo" width={120} height={40} className="h-10 w-auto" />
+        <Image src="/logoladoalado_fullscreen.png" alt="Logo" width={360} height={61} className="h-auto w-44 sm:w-60" />
       </header>
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 pb-24 sm:px-10">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-burgundy-glow sm:text-xs">

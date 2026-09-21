@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="border-b border-line print:hidden">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-10">
           <Link href="/admin" className="flex items-center gap-4">
-            <Image src="/logoladoalado.png" alt="Logo" width={120} height={40} className="h-10 w-auto" />
+            <Image src="/logoladoalado_fullscreen.png" alt="Logo" width={360} height={61} className="h-auto w-44 sm:w-60" />
             <span className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:inline">
               Painel
             </span>
