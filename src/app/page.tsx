@@ -130,7 +130,7 @@ export default function Home() {
                 <Ornament className="mr-2" />O que vamos perguntar
               </p>
               <h2 className="mt-4 font-display text-5xl uppercase leading-[1.05] tracking-[-0.01em] sm:text-6xl">
-                Só o que faz sentido para você
+                Responda só <span className="block sm:inline">o que faz sentido</span>
               </h2>
               <p className="mt-6 max-w-md leading-relaxed text-muted">
                 As perguntas se adaptam às suas respostas: quem precisa de loja
