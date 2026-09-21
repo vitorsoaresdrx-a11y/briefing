@@ -34,16 +34,16 @@ const TOPICS = [
 export default function Home() {
   return (
     <div className="flex min-h-full flex-col bg-black text-white">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-start px-6 py-6 sm:px-10">
         <Image
           src="/logoladoalado.png"
           alt="Logo"
-          width={384}
-          height={128}
+          width={300}
+          height={100}
           priority
-          className="h-auto w-96 max-w-[70vw]"
+          className="block h-auto w-56 sm:w-80"
         />
-        <p className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:block">
+        <p className="ml-auto hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:block">
           ≈ 10 min · sem cadastro
         </p>
       </header>
