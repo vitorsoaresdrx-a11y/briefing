@@ -23,10 +23,10 @@ const STEPS = [
 ];
 
 const FACTS = [
-  "≈ 10 minutos, com progresso salvo.",
-  "Cliques primeiro, texto só quando precisa.",
-  "Grave respostas longas no celular.",
-  "Um link guarda tudo, sem login.",
+  "Uns 10 minutos, no seu ritmo — pode parar e voltar depois.",
+  "Quase tudo se resolve no toque; texto só onde faz falta.",
+  "Prefere falar? Grave as respostas em áudio pelo celular.",
+  "Sem conta e sem senha: um link seu guarda todo o progresso.",
 ];
 
 const TOPICS = [
