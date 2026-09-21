@@ -8,7 +8,7 @@ const STEPS = [
   {
     n: "01",
     title: "Responda no seu ritmo",
-    text: "Poucas perguntas por tela, na maioria em cliques. Pode sair e voltar pelo mesmo link — nada se perde.",
+    text: "Poucas perguntas por tela, na maioria em cliques. Pode sair e voltar pelo mesmo link, sem perder nada.",
   },
   {
     n: "02",
@@ -56,8 +56,8 @@ export default function Home() {
               Conte sua ideia. Receba um projeto sob medida.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              Um questionário direto que transforma o que você conta — em texto
-              ou áudio — em um briefing completo para o seu site, landing page
+              Um questionário direto que transforma o que você conta, em texto
+              ou áudio, em um briefing completo para o seu site, landing page
               ou sistema.
             </p>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
