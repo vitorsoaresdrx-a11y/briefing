@@ -38,10 +38,10 @@ export default function Home() {
         <Image
           src="/logoladoalado.png"
           alt="Logo"
-          width={192}
-          height={64}
+          width={384}
+          height={128}
           priority
-          className="h-16 w-auto"
+          className="h-auto w-96 max-w-[70vw]"
         />
         <p className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:block">
           ≈ 10 min · sem cadastro
@@ -51,7 +51,7 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 sm:px-10">
         <section className="grid gap-12 pb-24 pt-10 sm:pt-16 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
           <Reveal>
-            <Eyebrow>Briefing guiado · qualquer nicho</Eyebrow>
+            <Eyebrow lines={["Briefing guiado", "qualquer nicho"]} />
             <h1 className="mt-6 font-display text-[13vw] uppercase leading-[1.05] tracking-[-0.01em] text-balance sm:text-7xl lg:text-8xl">
               Conte sua ideia. Receba um projeto sob medida.
             </h1>
