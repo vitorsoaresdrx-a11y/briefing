@@ -1,0 +1,506 @@
+import type { Step } from "./types";
+
+/**
+ * Fonte da verdade do questionário. Adicionar pergunta = editar este arquivo
+ * (sem migração: respostas ficam em answers JSONB, chaveadas por question.id).
+ */
+export const STEPS: Step[] = [
+  {
+    id: "contato",
+    title: "Vamos nos conhecer",
+    subtitle: "Para quem vamos projetar? Comece pelo básico.",
+    estimatedMinutes: 1,
+    questions: [
+      { id: "name", type: "text", label: "Seu nome", placeholder: "Como podemos te chamar?", required: true },
+      { id: "company", type: "text", label: "Empresa ou projeto", placeholder: "Nome do negócio", required: true },
+      { id: "whatsapp", type: "phone", label: "WhatsApp", placeholder: "(00) 90000-0000", help: "Para combinarmos os próximos passos.", required: true },
+      { id: "email", type: "email", label: "E-mail", placeholder: "voce@empresa.com", required: true },
+      { id: "current_site", type: "url", label: "Site atual", placeholder: "https://", help: "Se já tiver um site no ar." },
+      { id: "socials", type: "links", label: "Redes sociais", help: "Links que mostrem seu negócio (até 5).", maxItems: 5 },
+    ],
+  },
+  {
+    id: "tipo",
+    title: "O que vamos construir?",
+    subtitle: "Escolha o formato que mais se aproxima da sua ideia.",
+    estimatedMinutes: 1,
+    questions: [
+      {
+        id: "project_type",
+        type: "cards",
+        label: "Tipo de projeto",
+        required: true,
+        options: [
+          { value: "landing", label: "Landing page", description: "Página única focada em conversão." },
+          { value: "institucional", label: "Site institucional", description: "Várias páginas apresentando a empresa." },
+          { value: "saas", label: "SaaS / sistema web", description: "Aplicação com login e funcionalidades." },
+          { value: "ecommerce", label: "E-commerce", description: "Loja virtual com catálogo e pagamento." },
+          { value: "redesign", label: "Redesign", description: "Reformular um site que já existe." },
+          { value: "outro", label: "Outro", description: "Algo diferente — me conte nos próximos passos." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "negocio",
+    title: "Sobre o seu negócio",
+    subtitle: "Quanto mais claro, melhor o projeto traduz quem você é.",
+    estimatedMinutes: 2,
+    questions: [
+      {
+        id: "niche",
+        type: "single",
+        label: "Área de atuação",
+        options: [
+          { value: "saude", label: "Saúde" },
+          { value: "juridico", label: "Jurídico" },
+          { value: "financeiro", label: "Financeiro" },
+          { value: "educacao", label: "Educação" },
+          { value: "tecnologia", label: "Tecnologia" },
+          { value: "alimentacao", label: "Alimentação" },
+          { value: "varejo", label: "Varejo" },
+          { value: "servicos_locais", label: "Serviços locais" },
+          { value: "imobiliario", label: "Imobiliário" },
+          { value: "outro", label: "Outro" },
+        ],
+      },
+      { id: "business_description", type: "textarea", label: "O que seu negócio faz?", placeholder: "Descreva em poucas linhas…", allowAudio: true },
+      { id: "differentiator", type: "textarea", label: "O que te diferencia?", placeholder: "Por que escolhem você e não o concorrente?", allowAudio: true },
+      { id: "problem_solved", type: "textarea", label: "Que problema você resolve?", placeholder: "Qual dor do cliente você elimina?", allowAudio: true },
+    ],
+  },
+  {
+    id: "objetivo",
+    title: "Qual o objetivo principal?",
+    subtitle: "Se tivesse que escolher um, qual seria?",
+    estimatedMinutes: 1,
+    questions: [
+      {
+        id: "main_goal",
+        type: "cards",
+        label: "Objetivo do site",
+        required: true,
+        options: [
+          { value: "vender", label: "Vender", description: "Vender produtos ou serviços online." },
+          { value: "leads", label: "Captar leads", description: "Receber contatos de interessados." },
+          { value: "agendar", label: "Agendar atendimentos", description: "Marcar consultas, visitas ou reuniões." },
+          { value: "apresentar", label: "Apresentar a empresa", description: "Passar credibilidade e portfólio." },
+          { value: "validar", label: "Validar uma ideia", description: "Testar interesse antes de investir." },
+          { value: "outro", label: "Outro", description: "Um objetivo diferente desses." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "publico",
+    title: "Para quem é?",
+    subtitle: "Quem precisa se apaixonar pelo site à primeira vista.",
+    estimatedMinutes: 1,
+    questions: [
+      {
+        id: "audience_type",
+        type: "single",
+        label: "Seu público é",
+        options: [
+          { value: "b2b", label: "Empresas (B2B)" },
+          { value: "b2c", label: "Consumidor final (B2C)" },
+          { value: "ambos", label: "Ambos" },
+        ],
+      },
+      { id: "audience_profile", type: "textarea", label: "Descreva esse público", placeholder: "Idade, perfil, hábitos…", allowAudio: true },
+      {
+        id: "age_range",
+        type: "multi",
+        label: "Faixa etária",
+        options: [
+          { value: "18-24", label: "18–24" },
+          { value: "25-34", label: "25–34" },
+          { value: "35-44", label: "35–44" },
+          { value: "45-59", label: "45–59" },
+          { value: "60+", label: "60+" },
+        ],
+      },
+      {
+        id: "region",
+        type: "single",
+        label: "Onde estão seus clientes?",
+        options: [
+          { value: "local", label: "Na minha cidade/região" },
+          { value: "estadual", label: "No meu estado" },
+          { value: "nacional", label: "No Brasil todo" },
+          { value: "internacional", label: "Fora do Brasil também" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "visual",
+    title: "Identidade visual",
+    subtitle: "Cores, referências e o que você já tem (ou não).",
+    estimatedMinutes: 2,
+    questions: [
+      {
+        id: "has_logo",
+        type: "single",
+        label: "Você tem logo?",
+        options: [
+          { value: "tenho", label: "Sim, tenho" },
+          { value: "nao_tenho", label: "Não tenho" },
+          { value: "criar", label: "Preciso criar uma" },
+        ],
+      },
+      { id: "brand_colors", type: "colors", label: "Cores da marca", unknownLabel: "Não tenho, me sugira" },
+      { id: "brand_fonts", type: "text", label: "Fontes da marca", placeholder: "Ex.: Montserrat, serifada…", allowUnknown: true },
+      { id: "refs_liked", type: "links", label: "Sites que você gosta", help: "Até 3 referências de estilo.", maxItems: 3 },
+      { id: "refs_liked_why", type: "textarea", label: "O que te agrada neles?", placeholder: "Cores, estilo, organização…", allowAudio: true },
+      { id: "ref_disliked", type: "links", label: "Um site que você não gosta", help: "Saber o que evitar também ajuda.", maxItems: 1 },
+      { id: "ref_disliked_why", type: "textarea", label: "O que te desagrada nele?", allowAudio: true },
+    ],
+  },
+  {
+    id: "tom",
+    title: "Como a marca fala?",
+    subtitle: "Arraste cada controle para o lado que combina mais.",
+    estimatedMinutes: 1,
+    questions: [
+      { id: "tone_formality", type: "slider", label: "Tom da comunicação", leftLabel: "Formal", rightLabel: "Descontraído" },
+      { id: "tone_seriousness", type: "slider", label: "Personalidade", leftLabel: "Sério", rightLabel: "Divertido" },
+      { id: "tone_price", type: "slider", label: "Posicionamento", leftLabel: "Luxo", rightLabel: "Acessível" },
+    ],
+  },
+  {
+    id: "conteudo",
+    title: "Conteúdo do site",
+    subtitle: "O que o site precisa mostrar — e quem escreve.",
+    estimatedMinutes: 1,
+    questions: [
+      {
+        id: "sections",
+        type: "multi",
+        label: "Seções desejadas",
+        options: [
+          { value: "sobre", label: "Sobre" },
+          { value: "servicos", label: "Serviços" },
+          { value: "precos", label: "Preços" },
+          { value: "depoimentos", label: "Depoimentos" },
+          { value: "portfolio", label: "Portfólio" },
+          { value: "faq", label: "FAQ" },
+          { value: "blog", label: "Blog" },
+          { value: "contato", label: "Contato" },
+          { value: "equipe", label: "Equipe" },
+        ],
+      },
+      {
+        id: "has_copy",
+        type: "single",
+        label: "E os textos?",
+        options: [
+          { value: "tenho", label: "Tenho os textos prontos" },
+          { value: "parte", label: "Tenho uma parte" },
+          { value: "copywriting", label: "Preciso de copywriting" },
+        ],
+      },
+      {
+        id: "has_photos",
+        type: "single",
+        label: "E as fotos?",
+        options: [
+          { value: "tenho", label: "Tenho fotos boas" },
+          { value: "banco", label: "Preciso de banco de imagens" },
+          { value: "fotografar", label: "Vou fotografar" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "funcionalidades",
+    title: "Funcionalidades",
+    subtitle: "O que o site precisa fazer além de informar.",
+    estimatedMinutes: 1,
+    questions: [
+      {
+        id: "features",
+        type: "multi",
+        label: "Recursos desejados",
+        options: [
+          { value: "whatsapp", label: "Botão WhatsApp" },
+          { value: "form", label: "Formulário de contato" },
+          { value: "agendamento", label: "Agendamento" },
+          { value: "pagamento", label: "Pagamento online" },
+          { value: "crm", label: "Integração com CRM" },
+          { value: "analytics", label: "Analytics" },
+          { value: "chat", label: "Chat" },
+          { value: "blog", label: "Blog" },
+          { value: "idiomas", label: "Multi-idioma" },
+          { value: "membros", label: "Área de membros" },
+        ],
+      },
+      { id: "integrations", type: "textarea", label: "Integrações necessárias", placeholder: "Ex.: planilha, e-mail marketing, ERP…", allowAudio: true },
+    ],
+  },
+  {
+    id: "infra",
+    title: "Domínio e hospedagem",
+    subtitle: "Onde o site vai morar — sem jargão técnico.",
+    estimatedMinutes: 1,
+    questions: [
+      {
+        id: "has_domain",
+        type: "single",
+        label: "Você já tem domínio? (ex.: suaempresa.com)",
+        options: [
+          { value: "sim", label: "Sim" },
+          { value: "nao", label: "Não" },
+          { value: "nao_sei", label: "Não sei" },
+        ],
+        allowUnknown: true,
+      },
+      {
+        id: "domain_registrar",
+        type: "text",
+        label: "Onde o domínio está registrado?",
+        placeholder: "Ex.: Registro.br, GoDaddy…",
+        showIf: { field: "has_domain", equals: "sim" },
+      },
+      {
+        id: "has_hosting",
+        type: "single",
+        label: "E hospedagem?",
+        options: [
+          { value: "sim", label: "Sim, tenho" },
+          { value: "nao", label: "Não tenho" },
+          { value: "nao_sei", label: "Não sei" },
+        ],
+        allowUnknown: true,
+      },
+      {
+        id: "who_maintains",
+        type: "single",
+        label: "Quem vai cuidar do site depois de pronto?",
+        options: [
+          { value: "eu", label: "Eu mesmo" },
+          { value: "mensal", label: "Preciso de manutenção mensal" },
+          { value: "nao_sei", label: "Não sei ainda" },
+        ],
+        allowUnknown: true,
+      },
+    ],
+  },
+  {
+    id: "prazo",
+    title: "Prazo e investimento",
+    subtitle: "Para alinhar expectativa desde o início.",
+    estimatedMinutes: 1,
+    questions: [
+      {
+        id: "deadline",
+        type: "single",
+        label: "Quando precisa estar no ar?",
+        options: [
+          { value: "urgente", label: "Urgente (menos de 2 semanas)" },
+          { value: "1mes", label: "Em até 1 mês" },
+          { value: "2-3meses", label: "Em 2–3 meses" },
+          { value: "flexivel", label: "Flexível" },
+        ],
+      },
+      { id: "deadline_date", type: "text", label: "Tem uma data exata?", placeholder: "Ex.: 15/12 (opcional)" },
+      {
+        id: "budget",
+        type: "cards",
+        label: "Faixa de investimento",
+        allowUnknown: true,
+        unknownLabel: "Prefiro conversar",
+        options: [
+          { value: "faixa1", label: "Até R$ 2 mil", description: "Landing enxuta e direta." },
+          { value: "faixa2", label: "R$ 2–5 mil", description: "Site completo e personalizado." },
+          { value: "faixa3", label: "R$ 5–10 mil", description: "Projeto maior ou sistema." },
+          { value: "faixa4", label: "Acima de R$ 10 mil", description: "Escopo amplo ou contínuo." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "concorrentes",
+    title: "Referências de mercado",
+    subtitle: "Quem você admira — e o que quer dizer por último.",
+    estimatedMinutes: 1,
+    questions: [
+      { id: "competitors", type: "links", label: "Concorrentes ou inspirações", help: "Até 5 links.", maxItems: 5 },
+      { id: "final_notes", type: "textarea", label: "Algo mais que eu deva saber?", placeholder: "Qualquer detalhe que não coube antes…", allowAudio: true },
+    ],
+  },
+  {
+    id: "uploads",
+    title: "Arquivos",
+    subtitle: "Opcional — pode enviar agora ou depois.",
+    estimatedMinutes: 1,
+    questions: [
+      { id: "files_logo", type: "file", label: "Logo", fileKind: "logo", maxItems: 3 },
+      { id: "files_photos", type: "file", label: "Fotos", fileKind: "foto", maxItems: 10 },
+      { id: "files_docs", type: "file", label: "Documentos", fileKind: "documento", maxItems: 5 },
+    ],
+  },
+
+  // ---- Blocos condicionais ----
+  {
+    id: "saas",
+    title: "Sobre o sistema",
+    subtitle: "Perguntas específicas para SaaS e sistemas web.",
+    estimatedMinutes: 2,
+    showIf: { field: "project_type", equals: "saas" },
+    questions: [
+      { id: "saas_core_features", type: "textarea", label: "Funcionalidades principais", placeholder: "O que o sistema precisa fazer?", allowAudio: true },
+      { id: "saas_user_types", type: "textarea", label: "Tipos de usuário", placeholder: "Ex.: admin, cliente, visitante…" },
+      {
+        id: "saas_plans",
+        type: "single",
+        label: "Modelo de cobrança",
+        options: [
+          { value: "gratis", label: "Grátis" },
+          { value: "freemium", label: "Freemium" },
+          { value: "assinatura", label: "Assinatura" },
+          { value: "uso", label: "Por uso" },
+          { value: "indefinido", label: "Ainda não definido" },
+        ],
+        allowUnknown: true,
+      },
+      {
+        id: "saas_social_login",
+        type: "single",
+        label: "Login com Google/redes sociais?",
+        options: [
+          { value: "sim", label: "Sim" },
+          { value: "nao", label: "Não" },
+          { value: "nao_sei", label: "Não sei" },
+        ],
+        allowUnknown: true,
+      },
+      { id: "saas_integrations", type: "textarea", label: "Integrações do sistema", placeholder: "APIs, gateways, ferramentas…" },
+      { id: "saas_stack_pref", type: "text", label: "Preferência de tecnologia", placeholder: "Se tiver alguma", allowUnknown: true },
+    ],
+  },
+  {
+    id: "ecommerce",
+    title: "Sobre a loja",
+    subtitle: "Perguntas específicas para e-commerce.",
+    estimatedMinutes: 1,
+    showIf: { field: "project_type", equals: "ecommerce" },
+    questions: [
+      {
+        id: "ecom_product_count",
+        type: "single",
+        label: "Quantos produtos?",
+        options: [
+          { value: "ate20", label: "Até 20" },
+          { value: "20-100", label: "20 a 100" },
+          { value: "100-500", label: "100 a 500" },
+          { value: "500+", label: "Mais de 500" },
+        ],
+      },
+      {
+        id: "ecom_gateway",
+        type: "multi",
+        label: "Formas de pagamento",
+        options: [
+          { value: "pix", label: "Pix" },
+          { value: "cartao", label: "Cartão de crédito" },
+          { value: "boleto", label: "Boleto" },
+          { value: "mercadopago", label: "Mercado Pago" },
+          { value: "stripe", label: "Stripe" },
+          { value: "outro", label: "Outro" },
+        ],
+      },
+      {
+        id: "ecom_shipping",
+        type: "single",
+        label: "Como funciona a entrega?",
+        options: [
+          { value: "correios", label: "Correios/transportadora" },
+          { value: "motoboy", label: "Entrega local / motoboy" },
+          { value: "retirada", label: "Retirada no local" },
+          { value: "digital", label: "Produto digital" },
+        ],
+      },
+      {
+        id: "ecom_stock",
+        type: "single",
+        label: "Precisa controlar estoque?",
+        options: [
+          { value: "sim", label: "Sim" },
+          { value: "nao", label: "Não" },
+          { value: "nao_sei", label: "Não sei" },
+        ],
+        allowUnknown: true,
+      },
+    ],
+  },
+  {
+    id: "local",
+    title: "Sobre o atendimento local",
+    subtitle: "Para quem recebe clientes na região.",
+    estimatedMinutes: 1,
+    showIf: {
+      any: [
+        { field: "region", equals: "local" },
+        { field: "niche", equals: "servicos_locais" },
+      ],
+    },
+    questions: [
+      { id: "local_address", type: "text", label: "Endereço de atendimento", placeholder: "Rua, número, bairro, cidade" },
+      { id: "local_hours", type: "text", label: "Horário de funcionamento", placeholder: "Ex.: seg–sex, 9h às 18h" },
+      { id: "local_area", type: "text", label: "Área atendida", placeholder: "Bairros, cidades ou raio de entrega" },
+      {
+        id: "local_gmb",
+        type: "single",
+        label: "Tem perfil no Google (Maps)?",
+        options: [
+          { value: "sim", label: "Sim" },
+          { value: "nao", label: "Não" },
+          { value: "nao_sei", label: "Não sei" },
+        ],
+        allowUnknown: true,
+      },
+    ],
+  },
+  {
+    id: "redesign",
+    title: "Sobre o site atual",
+    subtitle: "O que não funciona hoje — e o que manter.",
+    estimatedMinutes: 1,
+    showIf: { field: "project_type", equals: "redesign" },
+    questions: [
+      { id: "redesign_problems", type: "textarea", label: "O que te incomoda no site atual?", allowAudio: true },
+      {
+        id: "redesign_analytics",
+        type: "single",
+        label: "Tem acesso às estatísticas (Analytics)?",
+        options: [
+          { value: "sim", label: "Sim" },
+          { value: "nao", label: "Não" },
+          { value: "nao_sei", label: "Não sei" },
+        ],
+        allowUnknown: true,
+      },
+    ],
+  },
+  {
+    id: "legal",
+    title: "Exigências do seu setor",
+    subtitle: "Algumas áreas têm regras próprias de comunicação.",
+    estimatedMinutes: 1,
+    showIf: { field: "niche", in: ["saude", "juridico", "financeiro"] },
+    questions: [
+      {
+        id: "legal_notes",
+        type: "textarea",
+        label: "Observações legais",
+        help: "Saúde, jurídico e finanças têm regras de publicidade (CFM, OAB, CVM) e a LGPD se aplica a todos. Conte aqui qualquer restrição que você já conheça.",
+        placeholder: "Ex.: não posso divulgar antes/depois, preciso de termo de consentimento…",
+        allowUnknown: true,
+        unknownLabel: "Não sei, me oriente",
+      },
+    ],
+  },
+];
+
+export const QUESTION_COUNT = STEPS.reduce((n, s) => n + s.questions.length, 0);
