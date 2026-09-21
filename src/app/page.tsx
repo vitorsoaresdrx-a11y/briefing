@@ -22,13 +22,6 @@ const STEPS = [
   },
 ];
 
-const FACTS = [
-  "Uns 10 minutos, no seu ritmo — pode parar e voltar depois.",
-  "Quase tudo se resolve no toque; texto só onde faz falta.",
-  "Prefere falar? Grave as respostas em áudio pelo celular.",
-  "Sem conta e sem senha: um link seu guarda todo o progresso.",
-];
-
 const TOPICS = [
   "Seu negócio e seu público",
   "Objetivo do projeto",
@@ -56,7 +49,7 @@ export default function Home() {
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 sm:px-10">
-        <section className="grid gap-12 pb-24 pt-10 sm:pt-16 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
+        <section className="max-w-4xl pb-24 pt-10 sm:pt-16">
           <Reveal>
             <Eyebrow lines={["Briefing guiado", "qualquer nicho"]} />
             <h1 className="mt-6 font-display text-[13vw] uppercase leading-[1.05] tracking-[-0.01em] text-balance sm:text-7xl lg:text-8xl">
@@ -76,25 +69,6 @@ export default function Home() {
                 Como funciona
               </Link>
             </div>
-          </Reveal>
-
-          <Reveal delay={0.12} className="lg:pt-24">
-            <ol className="flex flex-col border-t border-line">
-              {FACTS.map((fact, i) => (
-                <li
-                  key={fact}
-                  className="flex items-baseline gap-5 border-b border-line py-5"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="font-mono text-[11px] tracking-[0.14em] text-muted"
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <p className="text-[16px] leading-relaxed text-white">{fact}</p>
-                </li>
-              ))}
-            </ol>
           </Reveal>
         </section>
 
