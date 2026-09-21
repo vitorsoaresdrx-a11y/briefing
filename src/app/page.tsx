@@ -22,6 +22,13 @@ const STEPS = [
   },
 ];
 
+const FACTS = [
+  "≈ 10 minutos, com progresso salvo.",
+  "Cliques primeiro, texto só quando precisa.",
+  "Grave respostas longas no celular.",
+  "Um link guarda tudo, sem login.",
+];
+
 const TOPICS = [
   "Seu negócio e seu público",
   "Objetivo do projeto",
@@ -72,26 +79,22 @@ export default function Home() {
           </Reveal>
 
           <Reveal delay={0.12} className="lg:pt-24">
-            <dl className="flex flex-col border-t border-line">
-              {[
-                ["Tempo", "≈ 10 minutos, com progresso salvo"],
-                ["Formato", "Cliques primeiro, texto só quando precisa"],
-                ["Áudio", "Grave respostas longas no celular"],
-                ["Retomada", "Um link guarda tudo, sem login"],
-              ].map(([term, desc]) => (
-                <div
-                  key={term}
-                  className="grid grid-cols-[96px_1fr] gap-4 border-b border-line py-4"
+            <ol className="flex flex-col border-t border-line">
+              {FACTS.map((fact, i) => (
+                <li
+                  key={fact}
+                  className="flex items-baseline gap-5 border-b border-line py-5"
                 >
-                  <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-burgundy-glow">
-                    {term}
-                  </dt>
-                  <dd className="text-[15px] leading-relaxed text-muted">
-                    {desc}
-                  </dd>
-                </div>
+                  <span
+                    aria-hidden="true"
+                    className="font-mono text-[11px] tracking-[0.14em] text-muted"
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <p className="text-[16px] leading-relaxed text-white">{fact}</p>
+                </li>
               ))}
-            </dl>
+            </ol>
           </Reveal>
         </section>
 
