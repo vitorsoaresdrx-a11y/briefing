@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "./Reveal";
 import { StartCta } from "@/components/landing/StartCta";
-import { Ornament } from "@/components/ui/Ornament";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 const STEPS = [
   {
@@ -51,10 +51,7 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 sm:px-10">
         <section className="grid gap-12 pb-24 pt-10 sm:pt-16 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
           <Reveal>
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:text-xs">
-              <Ornament className="mr-2" />
-              Briefing guiado · funciona em qualquer nicho
-            </p>
+            <Eyebrow>Briefing guiado · qualquer nicho</Eyebrow>
             <h1 className="mt-6 font-display text-[13vw] uppercase leading-[1.05] tracking-[-0.01em] text-balance sm:text-7xl lg:text-8xl">
               Conte sua ideia. Receba um projeto sob medida.
             </h1>
@@ -100,10 +97,7 @@ export default function Home() {
 
         <section id="como-funciona" className="scroll-mt-8 border-t border-line py-16 sm:py-20">
           <Reveal>
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:text-xs">
-              <Ornament className="mr-2" />
-              Como funciona
-            </p>
+            <Eyebrow index="01">Como funciona</Eyebrow>
             <h2 className="mt-4 font-display text-5xl uppercase leading-[1.05] tracking-[-0.01em] sm:text-6xl">
               Três passos, <span className="block sm:inline">e somente isso</span>
             </h2>
@@ -126,9 +120,7 @@ export default function Home() {
         <section className="border-t border-line py-16 sm:py-20">
           <div className="grid gap-10 lg:grid-cols-2">
             <Reveal>
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:text-xs">
-                <Ornament className="mr-2" />O que vamos perguntar
-              </p>
+              <Eyebrow index="02">O que vamos perguntar</Eyebrow>
               <h2 className="mt-4 font-display text-5xl uppercase leading-[1.05] tracking-[-0.01em] sm:text-6xl">
                 Responda só <span className="block sm:inline">o que faz sentido</span>
               </h2>
@@ -140,13 +132,13 @@ export default function Home() {
             </Reveal>
             <Reveal delay={0.1}>
               <ul className="flex flex-col border-t border-line">
-                {TOPICS.map((topic) => (
+                {TOPICS.map((topic, i) => (
                   <li
                     key={topic}
-                    className="border-b border-line py-4 text-[15px]"
+                    className="flex items-baseline gap-4 border-b border-line py-4 text-[15px]"
                   >
-                    <span aria-hidden="true" className="mr-3 text-burgundy-glow">
-                      ✦
+                    <span aria-hidden="true" className="font-mono text-[11px] tracking-[0.14em] text-burgundy-glow">
+                      {String(i + 1).padStart(2, "0")}
                     </span>
                     {topic}
                   </li>

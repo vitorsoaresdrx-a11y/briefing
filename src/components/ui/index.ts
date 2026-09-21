@@ -14,3 +14,4 @@ export { LinkListInput } from "./LinkListInput";
 export { ColorPicker } from "./ColorPicker";
 export { ProgressBar } from "./ProgressBar";
 export { Ornament } from "./Ornament";
+export { Eyebrow } from "./Eyebrow";
