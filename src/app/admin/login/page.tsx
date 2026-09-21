@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
         <Ornament className="mr-2" />
         Área restrita
       </p>
-      <h1 className="mt-4 font-display text-5xl uppercase leading-[0.95]">Painel</h1>
+      <h1 className="mt-4 font-display text-5xl uppercase leading-[1.05]">Painel</h1>
       <div className="mt-10 w-full max-w-sm">
         <Suspense>
           <LoginForm />

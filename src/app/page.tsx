@@ -55,7 +55,7 @@ export default function Home() {
               <Ornament className="mr-2" />
               Briefing guiado · funciona em qualquer nicho
             </p>
-            <h1 className="mt-6 font-display text-[13vw] uppercase leading-[0.95] tracking-[-0.01em] text-balance sm:text-7xl lg:text-8xl">
+            <h1 className="mt-6 font-display text-[13vw] uppercase leading-[1.05] tracking-[-0.01em] text-balance sm:text-7xl lg:text-8xl">
               Conte sua ideia. Receba um projeto sob medida.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
@@ -104,7 +104,7 @@ export default function Home() {
               <Ornament className="mr-2" />
               Como funciona
             </p>
-            <h2 className="mt-4 font-display text-5xl uppercase leading-[0.95] tracking-[-0.01em] sm:text-6xl">
+            <h2 className="mt-4 font-display text-5xl uppercase leading-[1.05] tracking-[-0.01em] sm:text-6xl">
               Três passos, sem fricção
             </h2>
           </Reveal>
@@ -129,7 +129,7 @@ export default function Home() {
               <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:text-xs">
                 <Ornament className="mr-2" />O que vamos perguntar
               </p>
-              <h2 className="mt-4 font-display text-5xl uppercase leading-[0.95] tracking-[-0.01em] sm:text-6xl">
+              <h2 className="mt-4 font-display text-5xl uppercase leading-[1.05] tracking-[-0.01em] sm:text-6xl">
                 Só o que faz sentido para você
               </h2>
               <p className="mt-6 max-w-md leading-relaxed text-muted">
@@ -158,7 +158,7 @@ export default function Home() {
 
         <section className="border-t border-line py-16 sm:py-24">
           <Reveal>
-            <h2 className="max-w-3xl font-display text-5xl uppercase leading-[0.95] tracking-[-0.01em] sm:text-7xl">
+            <h2 className="max-w-3xl font-display text-5xl uppercase leading-[1.05] tracking-[-0.01em] sm:text-7xl">
               Pronto quando você estiver.
             </h2>
             <p className="mt-6 max-w-xl leading-relaxed text-muted">

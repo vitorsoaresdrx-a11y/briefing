@@ -41,7 +41,7 @@ export default async function ObrigadoPage({ params }: { params: Promise<{ token
           <Ornament className="mr-2" />
           Briefing enviado
         </p>
-        <h1 className="mt-4 flex items-center gap-4 font-display text-6xl uppercase leading-[0.95] tracking-[-0.01em] sm:text-7xl">
+        <h1 className="mt-4 flex items-center gap-4 font-display text-6xl uppercase leading-[1.05] tracking-[-0.01em] sm:text-7xl">
           Obrigado! <Check size={48} aria-hidden="true" className="shrink-0 text-burgundy-glow" />
         </h1>
         <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">

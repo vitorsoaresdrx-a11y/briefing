@@ -14,7 +14,7 @@ export default async function AdminNewPage() {
         <Ornament className="mr-2" />
         Compartilhar
       </p>
-      <h1 className="mt-4 font-display text-5xl uppercase leading-[0.95] sm:text-6xl">Novo link</h1>
+      <h1 className="mt-4 font-display text-5xl uppercase leading-[1.05] sm:text-6xl">Novo link</h1>
       <p className="mt-4 max-w-xl leading-relaxed text-muted">
         Gere um link retomável para o cliente. Se souber nome e empresa, preencha para já vir identificado.
       </p>
