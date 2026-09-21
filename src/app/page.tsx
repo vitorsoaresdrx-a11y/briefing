@@ -105,7 +105,7 @@ export default function Home() {
               Como funciona
             </p>
             <h2 className="mt-4 font-display text-5xl uppercase leading-[1.05] tracking-[-0.01em] sm:text-6xl">
-              Três passos, sem fricção
+              Três passos, <span className="block sm:inline">e somente isso</span>
             </h2>
           </Reveal>
           <ol className="mt-10 flex flex-col">
