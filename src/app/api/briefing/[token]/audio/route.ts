@@ -2,14 +2,10 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { findQuestion } from "@/lib/briefing/conditions";
 import { calcCompleteness } from "@/lib/briefing/completeness";
-import {
-  AUDIO_BUCKET,
-  type AudioInfo,
-} from "@/lib/briefing/media";
+import { AUDIO_BUCKET, type AudioInfo } from "@/lib/briefing/media";
 import type { Answers } from "@/lib/briefing/types";
-import { transcribe } from "@/lib/transcribe";
+import { runTranscription } from "@/lib/briefing/retranscribe";
 import {
-  denormalizedColumns,
   getBriefingByToken,
   listMedia,
   notFound,
@@ -28,10 +24,6 @@ const audioSchema = z.object({
 const deleteSchema = z.object({
   audio_id: z.string().uuid(),
 });
-
-function errMsg(e: unknown): string {
-  return e instanceof Error ? e.message : "erro desconhecido";
-}
 
 /**
  * Registra o áudio já enviado ao Storage e dispara a transcrição.
@@ -67,10 +59,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     }
 
     const supabase = createAdminClient();
-    const { data: blob, error: dlError } = await supabase.storage
+    const dir = storage_path.split("/").slice(0, -1).join("/");
+    const base = storage_path.split("/").pop() ?? "";
+    const { data: listed, error: listError } = await supabase.storage
       .from(AUDIO_BUCKET)
-      .download(storage_path);
-    if (dlError || !blob) {
+      .list(dir, { search: base });
+    if (listError || !listed?.some((o) => o.name === base)) {
       return Response.json(
         { error: "Áudio não encontrado no storage. Grave de novo." },
         { status: 422 },
@@ -92,45 +86,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     if (insError || !row) throw insError ?? new Error("insert de áudio falhou");
     const audioId = (row as { id: string }).id;
 
-    let transcript: string | null = null;
-    let transcribed = false;
-    try {
-      const ext = (mime_type.split(";")[0].trim().split("/")[1] ?? "webm").toLowerCase();
-      transcript = await transcribe(blob, `audio.${ext}`);
-      if (transcript === "") throw new Error("não detectei fala nesse áudio");
-      transcribed = true;
-    } catch (e) {
-      await supabase
-        .from("briefing_audios")
-        .update({ transcript_status: "erro", transcript_error: errMsg(e).slice(0, 500) })
-        .eq("id", audioId);
-    }
-
-    const merged: Answers = { ...briefing.answers };
-    if (transcribed && transcript) {
-      await supabase
-        .from("briefing_audios")
-        .update({ transcript, transcript_status: "concluido" })
-        .eq("id", audioId);
-      merged[question_id] = { value: transcript, audioId };
-    } else {
-      const prev = merged[question_id];
-      merged[question_id] = { value: prev && !prev.skipped && !prev.unknown ? prev.value : null, audioId };
-    }
-
-    const { percent, pending } = calcCompleteness(merged);
-    await supabase
-      .from("briefings")
-      .update({
-        answers: merged,
-        completeness: percent,
-        pending_fields: pending,
-        ...denormalizedColumns(merged),
-      })
-      .eq("id", briefing.id);
-
+    const { transcript, transcribed, answers } = await runTranscription(supabase, briefing, audioId);
     const { audios } = await listMedia(supabase, briefing.id);
-    return Response.json({ audioId, transcript, transcribed, answers: merged, audios });
+    return Response.json({ audioId, transcript, transcribed, answers, audios });
   } catch (e) {
     return serviceUnavailable(e);
   }

@@ -51,6 +51,7 @@ export function denormalizedColumns(answers: Answers) {
 }
 
 type AdminClient = ReturnType<typeof createAdminClient>;
+export type { AdminClient };
 
 /** Pergunta derivada do path <briefing_id>/<question_id>/<arquivo>. */
 export function questionIdFromPath(storagePath: string): string {
