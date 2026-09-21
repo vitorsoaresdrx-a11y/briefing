@@ -38,10 +38,10 @@ export default function Home() {
         <Image
           src="/logoladoalado.png"
           alt="Logo"
-          width={180}
-          height={32}
+          width={192}
+          height={64}
           priority
-          className="h-8 w-auto"
+          className="h-16 w-auto"
         />
         <p className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:block">
           ≈ 10 min · sem cadastro

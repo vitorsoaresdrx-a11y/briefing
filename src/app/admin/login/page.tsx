@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function AdminLoginPage() {
   return (
     <div className="flex min-h-full flex-col items-center bg-black px-6 py-16 text-white">
-      <Image src="/logoladoalado.png" alt="Logo" width={180} height={32} className="h-8 w-auto" />
+      <Image src="/logoladoalado.png" alt="Logo" width={144} height={48} className="h-12 w-auto" />
       <p className="mt-8 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
         <Ornament className="mr-2" />
         Área restrita
