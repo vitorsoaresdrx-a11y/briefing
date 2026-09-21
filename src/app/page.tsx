@@ -41,7 +41,7 @@ export default function Home() {
           width={1084}
           height={183}
           priority
-          className="block h-auto w-72 max-w-[80vw] sm:w-[26rem]"
+          className="block h-auto w-36 max-w-[60vw] sm:w-52"
         />
         <p className="ml-auto hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:block">
           ≈ 10 min · sem cadastro
