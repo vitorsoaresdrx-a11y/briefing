@@ -7,9 +7,11 @@ export interface TextareaProps
   label: string;
   hint?: string;
   error?: string;
+  /** Esconde o rótulo visual (mantém para leitor de tela). O wizard usa com cabeçalho próprio. */
+  hideLabel?: boolean;
 }
 
-export function Textarea({ label, hint, error, id, rows = 4, ...props }: TextareaProps) {
+export function Textarea({ label, hint, error, id, rows = 4, hideLabel = false, ...props }: TextareaProps) {
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
   const hintId = hint ? `${resolvedId}-hint` : undefined;
@@ -17,7 +19,7 @@ export function Textarea({ label, hint, error, id, rows = 4, ...props }: Textare
 
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={resolvedId} className="text-sm font-medium text-white">
+      <label htmlFor={resolvedId} className={`text-sm font-medium text-white ${hideLabel ? "sr-only" : ""}`}>
         {label}
       </label>
       <textarea

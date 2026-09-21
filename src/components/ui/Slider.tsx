@@ -12,6 +12,8 @@ export interface SliderProps
   step?: number;
   leftLabel?: string;
   rightLabel?: string;
+  /** Esconde o rótulo visual (mantém para leitor de tela). O wizard usa com cabeçalho próprio. */
+  hideLabel?: boolean;
 }
 
 export function Slider({
@@ -24,6 +26,7 @@ export function Slider({
   leftLabel,
   rightLabel,
   id,
+  hideLabel = false,
   ...props
 }: SliderProps) {
   const autoId = React.useId();
@@ -31,7 +34,7 @@ export function Slider({
 
   return (
     <div className="flex flex-col gap-3">
-      <label htmlFor={resolvedId} className="text-sm font-medium text-white">
+      <label htmlFor={resolvedId} className={`text-sm font-medium text-white ${hideLabel ? "sr-only" : ""}`}>
         {label}
       </label>
       <input

@@ -7,9 +7,11 @@ export interface InputProps
   label: string;
   hint?: string;
   error?: string;
+  /** Esconde o rótulo visual (mantém para leitor de tela). O wizard usa com cabeçalho próprio. */
+  hideLabel?: boolean;
 }
 
-export function Input({ label, hint, error, id, ...props }: InputProps) {
+export function Input({ label, hint, error, id, hideLabel = false, ...props }: InputProps) {
   const inputId = React.useId();
   const resolvedId = id ?? inputId;
   const hintId = hint ? `${resolvedId}-hint` : undefined;
@@ -17,7 +19,7 @@ export function Input({ label, hint, error, id, ...props }: InputProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={resolvedId} className="text-sm font-medium text-white">
+      <label htmlFor={resolvedId} className={`text-sm font-medium text-white ${hideLabel ? "sr-only" : ""}`}>
         {label}
       </label>
       <input

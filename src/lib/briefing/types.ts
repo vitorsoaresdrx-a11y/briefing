@@ -23,13 +23,17 @@ export type QuestionType =
   | "slider"
   | "links"
   | "colors"
-  | "file";
+  | "file"
+  | "notice";
 
 export type Question = {
   id: string;
   type: QuestionType;
   label: string;
-  help?: string;
+  /** OBRIGATÓRIO (ver 7.1): explicação curta exibida abaixo da pergunta. O build falha sem ele. */
+  help: string;
+  /** Opcional: exemplo concreto, exibido como "Ex.: ..." em itálico. */
+  example?: string;
   placeholder?: string;
   options?: Option[];
   required?: boolean;
@@ -47,7 +51,8 @@ export type Question = {
 export type Step = {
   id: string;
   title: string;
-  subtitle?: string;
+  /** OBRIGATÓRIO (ver 7.1): por que estamos perguntando isso. */
+  subtitle: string;
   estimatedMinutes: number;
   questions: Question[];
   showIf?: Condition;

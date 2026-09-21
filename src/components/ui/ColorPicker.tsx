@@ -28,6 +28,8 @@ interface ColorPickerProps {
   unknown?: boolean;
   onUnknownChange?: (unknown: boolean) => void;
   unknownLabel?: string;
+  /** Esconde o rótulo visual (mantém aria-label). O wizard usa com cabeçalho próprio. */
+  hideLabel?: boolean;
 }
 
 export function ColorPicker({
@@ -37,13 +39,14 @@ export function ColorPicker({
   unknown = false,
   onUnknownChange,
   unknownLabel = "Não tenho, me sugira",
+  hideLabel = false,
 }: ColorPickerProps) {
   const hexId = React.useId();
   const validHex = /^#[0-9a-fA-F]{6}$/.test(value.trim());
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium text-white">{label}</p>
+      {hideLabel ? null : <p className="text-sm font-medium text-white">{label}</p>}
       <div className="flex flex-wrap gap-2" role="group" aria-label={label}>
         {PRESET_COLORS.map((color) => {
           const active =
@@ -93,7 +96,7 @@ export function ColorPicker({
         />
         {value.trim() !== "" && !validHex && !unknown ? (
           <p role="alert" className="text-sm text-burgundy-glow">
-            Use o formato #RRGGBB.
+            Esse código de cor parece incompleto. Ex.: #6D001A.
           </p>
         ) : null}
       </div>

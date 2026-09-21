@@ -10,12 +10,14 @@ interface ChipsProps {
   selected: string[];
   onToggle: (value: string) => void;
   label?: string;
+  /** Esconde o rótulo visual (mantém aria-label). O wizard usa com cabeçalho próprio. */
+  hideLabel?: boolean;
 }
 
-export function Chips({ options, selected, onToggle, label }: ChipsProps) {
+export function Chips({ options, selected, onToggle, label, hideLabel = false }: ChipsProps) {
   return (
     <div>
-      {label ? (
+      {label && !hideLabel ? (
         <p className="mb-3 text-sm font-medium text-white">{label}</p>
       ) : null}
       <div className="flex flex-wrap gap-2" role="group" aria-label={label}>

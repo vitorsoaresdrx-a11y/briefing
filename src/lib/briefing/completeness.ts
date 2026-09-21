@@ -30,13 +30,14 @@ export type Completeness = {
   pending: string[];
 };
 
-/** Completude sobre perguntas visíveis (após lógica condicional). */
+/** Completude sobre perguntas visíveis (após lógica condicional). Avisos (`notice`) não contam. */
 export function calcCompleteness(answers: Answers): Completeness {
   const visible = visibleQuestionsAll(answers);
   let totalWeight = 0;
   let answeredWeight = 0;
   const pending: string[] = [];
   for (const { question } of visible) {
+    if (question.type === "notice") continue;
     const w = questionWeight(question);
     totalWeight += w;
     if (isAnswered(question, answers)) {
@@ -52,7 +53,7 @@ export function calcCompleteness(answers: Answers): Completeness {
 /** Ids das obrigatórias visíveis ainda sem resposta (bloqueiam o envio). */
 export function missingRequired(answers: Answers): string[] {
   return visibleQuestionsAll(answers)
-    .filter(({ question }) => question.required)
+    .filter(({ question }) => question.required && question.type !== "notice")
     .filter(({ question }) => !isAnswered(question, answers))
     .map(({ question }) => question.id);
 }

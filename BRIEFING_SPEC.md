@@ -77,7 +77,7 @@ Escuro, cinematográfico, editorial. Headlines condensadas e enormes em caixa al
 
 ### Tipografia
 
-- **Display (headlines, títulos de etapa, números grandes):** `Neuhaus Headline` — fonte condensada de impacto, uso em **caixa alta**, `line-height: 0.9`, `letter-spacing: -0.01em`.
+- **Display (headlines, títulos de etapa, números grandes):** `Neuhaus Headline` — fonte condensada de impacto, uso em **caixa alta**, `line-height: 1.05`, `letter-spacing: -0.01em`. **Não usar `line-height` abaixo de 1.0**: em pt-BR o til (Ã, Õ), o circunflexo (Ê, Ô) e a cedilha (Ç) colidem com as linhas vizinhas. Usar a classe `.headline` (ver `globals.css`) em todo título em Neuhaus. Se houver animação de máscara com `overflow: hidden`, aplicar `padding-block: 0.12em; margin-block: -0.12em` para não cortar acentos. Testar sempre com: `FRICÇÃO`, `AÇÕES`, `ÂNGULO`, `SÊNIOR`, `ÓRGÃO`. Confirmar que o arquivo da fonte tem glifos acentuados (Latin Extended); se não tiver, avisar o usuário em vez de deixar o navegador misturar fontes.
   - O arquivo da fonte será fornecido pelo usuário. Esperar em `src/fonts/NeuhausHeadline.woff2` (ou .otf/.ttf; converter para woff2 se necessário).
   - Carregar com `next/font/local`, expondo `--font-display`.
   - **Fallback enquanto o arquivo não existir:** usar `Anton` via `next/font/google` (mesma proporção condensada). Implementar de forma que basta soltar o arquivo em `src/fonts/` e trocar uma linha em `src/lib/fonts.ts`.
@@ -118,6 +118,15 @@ body::after {
 }
 
 :focus-visible { outline: 2px solid var(--color-burgundy-glow); outline-offset: 3px; }
+
+/* Todo título em Neuhaus usa esta classe. line-height >= 1.0 evita colisão de acentos (Ã, Õ, Ê, Ç). */
+.headline {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  padding-block: 0.04em;
+}
 ::selection { background: var(--color-burgundy); color: #fff; }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -299,7 +308,8 @@ export type Question = {
   id: string;
   type: QuestionType;
   label: string;
-  help?: string;
+  help: string;               // OBRIGATÓRIO: explicação curta (1–2 frases) exibida abaixo da pergunta
+  example?: string;           // opcional: exemplo concreto, exibido como "Ex.: ..." em itálico
   placeholder?: string;
   options?: Option[];
   required?: boolean;         // bloqueia "Continuar"
@@ -316,7 +326,7 @@ export type Question = {
 export type Step = {
   id: string;
   title: string;            // exibido em Neuhaus, caixa alta
-  subtitle?: string;
+  subtitle: string;         // OBRIGATÓRIO: por que estamos perguntando isso (ver 7.1)
   estimatedMinutes: number;
   questions: Question[];    // 1–3 por tela
   showIf?: Condition;
@@ -360,6 +370,116 @@ Regras gerais de UX das perguntas:
 - Preferir `cards`, `single`, `multi`, `slider` a texto livre. Texto livre só onde indispensável.
 - **Toda** pergunta tem "Pular por enquanto"; perguntas não obrigatórias e de conhecimento ("tem domínio?") têm "Não sei". Respostas puladas/desconhecidas entram em `pending_fields`.
 - Só os campos de contato e `project_type` e `main_goal` são obrigatórios (peso 3).
+- **Toda pergunta tem texto de ajuda (`help`) escrito para a pessoa mais leiga possível.** Ver seção 7.1. O agente não pode inventar textos mais técnicos nem omitir o `help`; o TypeScript deve falhar o build se uma pergunta não tiver `help`.
+
+### 7.1 Textos de ajuda (usar exatamente estes, em pt-BR)
+
+**Regras de escrita:** linguagem de conversa, sem jargão; se um termo técnico for inevitável (domínio, hospedagem, CRM, B2B), explicar com uma comparação simples na própria ajuda. Dizer **o que fazer** ("Cole o link...") e **para que serve** ("...isso nos ajuda a..."). Máximo de 2 frases; exemplos vão em `example`. Nas opções de cards e múltipla escolha, usar `description` para explicar cada opção em uma frase curta.
+
+**Regras de exibição:** `help` aparece logo abaixo do título da pergunta, em `muted`, 14–15px, `line-height` 1.5. `example` aparece abaixo, em itálico, prefixado por "Ex.:". Perguntas de links usam placeholder `www.exemplo.com.br` e deixam claro que é para **colar o endereço** do site. O `subtitle` de cada etapa explica por que estamos perguntando aquilo.
+
+#### Subtítulos das etapas
+
+| Etapa | `subtitle` |
+|---|---|
+| `contato` | Só o básico para começarmos. Leva menos de 1 minuto. |
+| `tipo` | Escolha o que mais se parece com o que você imagina. Se ficar na dúvida, a gente ajuda depois. |
+| `negocio` | Quanto melhor entendermos o seu negócio, melhor o site vai conversar com os seus clientes. Pode escrever ou falar. |
+| `objetivo` | Todo site precisa de um foco principal. Isso guia o design inteiro. |
+| `publico` | Um site bom é feito para uma pessoa específica, não para todo mundo. |
+| `visual` | Aqui entendemos o visual da sua marca. Se ainda não tem nada definido, sem problema: a gente cuida disso. |
+| `tom` | Imagine que a sua marca é uma pessoa falando com o cliente. Como ela fala? |
+| `conteudo` | O que vai aparecer no site e quem vai preparar esse material. |
+| `funcionalidades` | O que o site precisa fazer, além de mostrar informações. Não precisa entender de tecnologia: marque o que fizer sentido. |
+| `infra` | Onde o site vai morar na internet. Se você não sabe nada disso, tudo bem: é só marcar "Não sei". |
+| `prazo` | Ajuda a planejarmos o projeto de forma realista. Sem compromisso. |
+| `concorrentes` | Conhecer o mercado nos ajuda a fazer o seu site se destacar. |
+| `uploads` | Opcional. Se não tiver nada agora, você pode enviar depois pelo mesmo link. |
+
+#### Núcleo
+
+| `id` | Pergunta (`label`) | Ajuda (`help`) · Exemplo (`example`) |
+|---|---|---|
+| `name` | Qual é o seu nome? | Para sabermos como te chamar durante o projeto. |
+| `company` | Qual o nome da sua empresa ou marca? | Se ainda não tem um nome definido, escreva o que pretende usar ou o seu próprio nome. |
+| `whatsapp` | Qual o seu WhatsApp? | É por onde vamos falar com você sobre o projeto. Coloque com DDD. |
+| `email` | Qual o seu e-mail? | Vamos usar para enviar propostas e arquivos. Prefira um que você olha com frequência. |
+| `current_site` | Você já tem um site? Qual o endereço? | Se já tem, cole o link para vermos como está hoje. Se não tem, é só pular. · Ex.: www.suaempresa.com.br |
+| `socials` | Quais são as suas redes sociais? | Cole os links do seu Instagram, LinkedIn, etc. Isso nos ajuda a entender o estilo da sua marca e a colocar esses links no site. |
+| `project_type` | Que tipo de projeto você precisa? | Escolha o que mais se parece com o que você tem em mente. Se estiver em dúvida, escolha "Outro" e explique nas próximas telas. |
+| `niche` | Em qual segmento você atua? | Escolha a área do seu negócio. Isso muda algumas perguntas que faremos em seguida. |
+| `business_description` | O que a sua empresa faz? | Explique como se estivesse contando para um amigo: o que você vende ou oferece. Pode escrever ou gravar um áudio. · Ex.: Somos uma clínica de fisioterapia que atende idosos em casa. |
+| `differentiator` | O que te diferencia dos concorrentes? | O que faz alguém escolher você e não outra empresa? Pode ser preço, atendimento, qualidade, rapidez, experiência... · Ex.: Entregamos em até 2 horas e temos atendimento humano 24h. |
+| `problem_solved` | Que problema você resolve para o seu cliente? | Qual dificuldade a pessoa tem antes de te procurar, e como você ajuda a resolver? · Ex.: Pessoas sem tempo para cozinhar, que recebem refeições saudáveis prontas. |
+| `main_goal` | Qual o principal objetivo do projeto? | Escolha só uma. É a coisa mais importante que você quer que o site faça. Isso deixa o design muito mais eficiente. |
+| `audience_type` | Você vende para empresas, para pessoas ou para os dois? | "Empresas" quer dizer que seu cliente é outro negócio (o famoso B2B). "Pessoas" é o consumidor final (B2C). |
+| `audience_profile` | Como é o seu cliente ideal? | Descreva quem mais compra de você: profissão, idade, o que gosta, onde mora. Quanto mais detalhes, melhor. · Ex.: Mulheres de 30 a 45 anos, mães, que trabalham fora e valorizam praticidade. |
+| `age_range` | Qual a faixa de idade dele? | Você pode marcar mais de uma. |
+| `region` | Onde estão os seus clientes? | Só na sua cidade, no estado, no país inteiro ou no mundo todo? Isso muda como o site é pensado. |
+| `has_logo` | Você já tem um logo? | O logo é o símbolo ou o nome estilizado da sua marca. Se você tem, poderá enviar mais adiante. |
+| `brand_colors` | Quais são as cores da sua marca? | Se o seu logo já tem cores, escolha-as aqui. Se não tem nada definido, marque "Não tenho, me sugira" que a gente escolhe combinações para você. |
+| `brand_fonts` | Quais fontes (tipos de letra) a sua marca usa? | Se você não sabe o que é isso, sem problema: marque "Não sei" e escolhemos letras que combinem com a sua marca. |
+| `refs_liked` | Cole até 3 sites que você acha bonitos | Podem ser de qualquer área, até de concorrentes. Servem de inspiração para entendermos o seu gosto. Não vamos copiar nenhum deles. · Ex.: www.exemplo.com.br |
+| `refs_liked_why` | O que você gosta nesses sites? | Pode ser as cores, o jeito de organizar, as fotos, o clima... Qualquer coisa que tenha chamado a sua atenção. |
+| `ref_disliked` | Tem algum site de que você NÃO gosta? Cole o link | Saber o que evitar ajuda tanto quanto saber o que você curte. Escolha um site que você acha feio, confuso ou que não tem nada a ver com você. Se não lembrar de nenhum, é só pular. |
+| `ref_disliked_why` | O que te incomoda nesse site? | Ex.: muita informação junta, cores fortes demais, difícil de achar as coisas, parece antigo. |
+| `tone_formality` | A sua marca é mais formal ou mais descontraída? | Formal soa assim: "Prezado cliente, temos o prazer de apresentar...". Descontraído soa assim: "Oi! Bora conhecer a gente?". |
+| `tone_seriousness` | Mais séria ou mais divertida? | Séria passa credibilidade e calma. Divertida usa leveza e humor. |
+| `tone_price` | Mais luxo ou mais acessível? | Luxo passa exclusividade e sofisticação. Acessível passa proximidade e preço justo. |
+| `sections` | Quais seções você imagina no site? | Seções são os "blocos" que o visitante vai ver ao rolar a página. Marque as que fizerem sentido. Se tiver dúvida, sugerimos depois. |
+| `has_copy` | Você já tem os textos do site? | "Copywriting" é escrever os textos de forma que convençam quem está visitando. Se você não tem nada pronto, podemos escrever junto com você. |
+| `has_photos` | E as fotos e imagens? | Fotos reais da sua empresa, produtos e equipe deixam o site mais confiável. "Banco de imagens" são fotos profissionais prontas para usar. |
+| `features` | O que o site precisa ter? | Marque as funções que você quer. Se não entender alguma, deixe em branco que explicamos depois. |
+| `integrations` | Precisa se conectar com alguma ferramenta que você já usa? | Por exemplo: sistema de e-mail marketing, agenda, meio de pagamento, planilhas. Se não usa nenhuma, pode pular. · Ex.: Mailchimp, Google Agenda, Mercado Pago. |
+| `has_domain` | Você já tem um domínio? | Domínio é o endereço do seu site na internet, como "suaempresa.com.br". Se você já comprou um, marque "Sim". |
+| `domain_registrar` | Onde você registrou esse domínio? | É o site em que você comprou o endereço. Se não lembra, procure no e-mail da compra ou marque "Não sei". · Ex.: Registro.br, GoDaddy, Hostinger. |
+| `has_hosting` | Você já tem hospedagem? | Hospedagem é o "terreno" onde o site fica guardado para ficar disponível na internet. Se você não sabe, marque "Não sei" e nós cuidamos disso. |
+| `who_maintains` | Quem vai cuidar do site depois de pronto? | Depois de publicado, o site precisa de pequenas atualizações e cuidados. Você pode fazer por conta própria ou contratar uma manutenção mensal. |
+| `deadline` | Para quando você precisa do projeto? | Seja sincero: prazos muito curtos exigem mais dedicação e podem custar mais. Se não tem pressa, escolha "Flexível". |
+| `deadline_date` | Existe alguma data específica? | Por exemplo, um lançamento, evento ou campanha. Se não tem uma data, é só pular. |
+| `budget` | Quanto você pretende investir? | Só uma faixa aproximada, sem nenhum compromisso. Ajuda a indicarmos a solução certa para o seu bolso. Se preferir não dizer agora, escolha "Prefiro conversar". |
+| `competitors` | Quem são os seus principais concorrentes? | São empresas que oferecem algo parecido com o que você faz. Cole os links dos sites delas. Não é para copiar: é para fazer você se destacar. |
+| `final_notes` | Tem mais alguma coisa que devemos saber? | Espaço livre para ideias, dúvidas, preferências ou restrições. Qualquer coisa que não coube nas perguntas anteriores. |
+| `files_logo` | Envie o seu logo | Se puder, envie em PNG ou SVG com fundo transparente. Se só tiver uma foto ou print, serve também. |
+| `files_photos` | Envie fotos | Da sua empresa, produtos, equipe ou local. Não precisa escolher as melhores: mande as que tiver. |
+| `files_docs` | Envie documentos | Manual da marca, apresentações, textos, tabelas de preços... Tudo o que ajude a entendermos o seu negócio. |
+
+**Descrições das opções (`description`) — cards e múltipla escolha:**
+
+- `project_type`: Landing page = "Uma página única, focada em uma ação, como vender ou captar contatos." · Site institucional = "Um site com várias páginas apresentando a sua empresa." · SaaS / sistema web = "Um sistema online com login, onde as pessoas usam uma ferramenta sua pelo navegador." · E-commerce = "Uma loja virtual para vender produtos pela internet." · Redesign = "Você já tem um site e quer refazê-lo." · Outro = "Algo diferente. Você explica nas próximas telas."
+- `main_goal`: Vender = "As pessoas comprando direto pelo site." · Captar leads = "As pessoas deixando nome e contato para você falar depois." · Agendar atendimentos = "As pessoas marcando horário ou consulta." · Apresentar a empresa = "Mostrar quem você é e passar confiança." · Validar uma ideia = "Testar se a sua ideia interessa ao mercado antes de investir mais." · Outro = "Você explica melhor mais adiante."
+- `sections`: Sobre = "Sua história e quem você é." · Serviços = "O que você oferece." · Preços = "Valores ou planos." · Depoimentos = "O que os clientes falam de você." · Portfólio = "Trabalhos que você já fez." · FAQ = "Perguntas frequentes, já respondidas." · Blog = "Artigos e novidades." · Contato = "Formulário, telefone e mapa." · Equipe = "Apresentação das pessoas do seu time."
+- `features`: Botão de WhatsApp = "Um botão que abre uma conversa com você." · Formulário de contato = "O visitante preenche e você recebe no e-mail." · Agendamento = "O cliente escolhe dia e horário." · Pagamento online = "Cartão, Pix ou boleto direto no site." · CRM = "Um sistema que organiza seus contatos e vendas." · Analytics = "Números de quantas pessoas visitam o site." · Chat = "Uma janelinha de conversa no site." · Blog = "Espaço para você publicar artigos." · Multi-idioma = "Site disponível em mais de um idioma." · Área de membros = "Uma parte do site com login, só para clientes."
+
+#### Blocos condicionais
+
+| `id` | Pergunta (`label`) | Ajuda (`help`) · Exemplo (`example`) |
+|---|---|---|
+| `saas_core_features` | Quais as principais funções do sistema? | Conte o que a pessoa vai poder fazer lá dentro. Não precisa ser técnico. · Ex.: Cadastrar clientes, emitir relatórios e receber lembretes. |
+| `saas_user_types` | Quais tipos de usuário vão usar? | Cada tipo de usuário pode ver e fazer coisas diferentes. · Ex.: Administrador, funcionário, cliente. |
+| `saas_plans` | Como você pretende cobrar? | Grátis: ninguém paga. Freemium: uma versão grátis e outra paga com mais recursos. Assinatura: mensalidade. Por uso: paga conforme utiliza. |
+| `saas_social_login` | Quer que as pessoas possam entrar com a conta do Google ou outra? | Permite entrar com 1 clique, sem criar senha nova. Deixa o cadastro bem mais fácil. |
+| `saas_integrations` | Precisa se conectar com outros sistemas? | Por exemplo, para emitir nota fiscal, cobrar no cartão ou enviar e-mails automáticos. |
+| `saas_stack_pref` | Tem preferência de tecnologia? | Só responda se você já sabe (por exemplo, se tem um time técnico). Se não, marque "Não sei" que escolhemos a melhor opção para o seu caso. |
+| `ecom_product_count` | Quantos produtos você vai vender? | Uma estimativa já serve. Isso ajuda a definir como organizar a loja. |
+| `ecom_gateway` | Como você quer receber os pagamentos? | "Gateway" é o serviço que processa o pagamento (como Mercado Pago ou Stripe). Se você não sabe, marque "Não sei". |
+| `ecom_shipping` | Como vai ser a entrega? | Correios, transportadora, retirada no local, entrega própria... Marque o que pretende usar. |
+| `ecom_stock` | Como você controla o estoque? | Se já usa planilha ou algum sistema, conte qual. Se não controla, tudo bem. |
+| `local_address` | Qual o endereço do seu negócio? | Vai aparecer no site e no mapa para o cliente te encontrar. |
+| `local_hours` | Quais os horários de funcionamento? | · Ex.: Segunda a sexta, das 8h às 18h. |
+| `local_area` | Quais regiões você atende? | Cidade, bairros ou até quantos quilômetros você atende. · Ex.: Sorocaba e região. |
+| `local_gmb` | Você tem perfil no Google Meu Negócio? | É a ficha da sua empresa que aparece no Google e no Google Maps quando alguém pesquisa por você. Ajuda a ser encontrado perto de você. |
+| `redesign_problems` | O que não funciona no seu site atual? | Conte o que te incomoda. · Ex.: Parece antigo, é lento, é difícil de usar no celular, ninguém entra em contato. |
+| `redesign_analytics` | Você tem acesso ao Google Analytics do site? | É a ferramenta que mostra quantas pessoas visitam o site e o que fazem nele. Se tem, ajuda muito a melhorarmos o que já funciona. |
+| `legal_notice` (aviso) | — | Na sua área existem regras sobre como se pode divulgar serviços na internet. Vamos cuidar disso junto com você. |
+| `legal_notes` | Existe alguma regra ou restrição da sua área que precisamos respeitar? | Algumas profissões são fiscalizadas por conselhos (como CFM, OAB ou CVM) e têm regras sobre o que pode aparecer em site e propaganda. Conte se você conhece alguma. Se não, marque "Não sei" e verificamos. |
+
+**Botões padrão (também precisam de explicação curta, em tooltip ou texto pequeno):**
+- "Pular por enquanto" → "Você poderá responder depois pelo mesmo link."
+- "Não sei" → "Sem problema, nós ajudamos com isso."
+- "🎙 Prefiro falar" → "Grave um áudio e nós transformamos em texto para você conferir."
+
+**Mensagens de erro em português claro:** por exemplo, "Esse e-mail parece incompleto. Confira se tem o @." e "Esse link não parece um endereço de site. Ex.: www.suaempresa.com.br". Nada de mensagens técnicas como "invalid input".
 
 ---
 

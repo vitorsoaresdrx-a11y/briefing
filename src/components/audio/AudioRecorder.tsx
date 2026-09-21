@@ -244,7 +244,13 @@ export function AudioRecorder({
               Áudio anexado — a transcrição está no campo acima
             </p>
           ) : null}
-          <Button variant="ghost" onClick={startRecording} className="min-h-[44px] self-start px-4 text-sm">
+          <Button
+            variant="ghost"
+            onClick={startRecording}
+            title="Grave um áudio e nós transformamos em texto para você conferir."
+            aria-label={`${existingAudioId ? "Gravar de novo" : "Prefiro falar"}. Grave um áudio e nós transformamos em texto para você conferir.`}
+            className="min-h-[44px] self-start px-4 text-sm"
+          >
             <Mic size={18} aria-hidden="true" />
             {existingAudioId ? "Gravar de novo" : "Prefiro falar"}
           </Button>

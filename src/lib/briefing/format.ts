@@ -40,6 +40,7 @@ function formatValue(q: Question, answer: Answer): string {
 export function formatAnswer(questionId: string, answer: Answer | undefined): string {
   const found = findQuestion(questionId);
   if (!found) return "—";
+  if (found.question.type === "notice") return found.question.help;
   if (!answer || answer.skipped) return "Não respondido";
   if (answer.unknown) return found.question.unknownLabel ?? "Não sabe";
   return formatValue(found.question, answer);

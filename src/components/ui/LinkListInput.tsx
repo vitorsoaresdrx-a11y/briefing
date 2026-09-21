@@ -9,6 +9,8 @@ interface LinkListInputProps {
   maxItems?: number;
   placeholder?: string;
   hint?: string;
+  /** Esconde o rótulo visual (mantém legend para leitor de tela). O wizard usa com cabeçalho próprio. */
+  hideLabel?: boolean;
 }
 
 export function LinkListInput({
@@ -18,6 +20,7 @@ export function LinkListInput({
   maxItems = 5,
   placeholder = "https://",
   hint,
+  hideLabel = false,
 }: LinkListInputProps) {
   const items = values.length === 0 ? [""] : values;
   const canAdd = items.length < maxItems;
@@ -38,7 +41,7 @@ export function LinkListInput({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="mb-1 text-sm font-medium text-white">{label}</legend>
+      <legend className={`mb-1 text-sm font-medium text-white ${hideLabel ? "sr-only" : ""}`}>{label}</legend>
       {hint ? <p className="text-sm leading-relaxed text-muted">{hint}</p> : null}
       {items.map((item, index) => (
         <div key={index} className="flex items-center gap-2">

@@ -15,7 +15,23 @@ import { FileField, type FileSync } from "./FileField";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export function isValidEmail(v: string): boolean {
+  return EMAIL_RE.test(v.trim());
+}
+
+export function isValidUrl(v: string): boolean {
+  const s = v.trim();
+  if (s === "") return false;
+  try {
+    const u = new URL(s.startsWith("http") ? s : `https://${s}`);
+    return Boolean(u.hostname.includes("."));
+  } catch {
+    return false;
+  }
+}
+
 export function isValid(q: Question, answers: Answers): boolean {
+  if (q.type === "notice") return true;
   const ans = answers[q.id];
   if (!ans || ans.skipped || ans.unknown) return false;
   const v = ans.value;
@@ -25,15 +41,9 @@ export function isValid(q: Question, answers: Answers): boolean {
     case "phone":
       return typeof v === "string" && v.trim() !== "";
     case "email":
-      return typeof v === "string" && EMAIL_RE.test(v.trim());
+      return typeof v === "string" && isValidEmail(v);
     case "url":
-      if (typeof v !== "string" || v.trim() === "") return false;
-      try {
-        const u = new URL(v.trim().startsWith("http") ? v.trim() : `https://${v.trim()}`);
-        return Boolean(u.hostname.includes("."));
-      } catch {
-        return false;
-      }
+      return typeof v === "string" && isValidUrl(v);
     case "single":
     case "cards":
       return typeof v === "string" && v !== "";
@@ -70,6 +80,33 @@ interface FieldProps {
   onMediaSync: (result: { answers: Answers; audios?: AudioInfo[]; files?: FileInfo[] }) => void;
 }
 
+/**
+ * Cabeçalho padrão da pergunta (ver 7.1): título, ajuda em muted 14px e
+ * exemplo em itálico com prefixo "Ex.:".
+ */
+function FieldHeader({ question, htmlFor }: { question: Question; htmlFor?: string }) {
+  const title =
+    htmlFor != null ? (
+      <label htmlFor={htmlFor} className="text-sm font-medium text-white">
+        {question.label}
+      </label>
+    ) : (
+      <p className="text-sm font-medium text-white">{question.label}</p>
+    );
+  return (
+    <div className="flex flex-col gap-1.5">
+      {title}
+      <p className="text-sm leading-normal text-muted">{question.help}</p>
+      {question.example ? (
+        <p className="text-sm italic leading-normal text-muted">Ex.: {question.example}</p>
+      ) : null}
+    </div>
+  );
+}
+
+const SKIP_HINT = "Você poderá responder depois pelo mesmo link.";
+const UNKNOWN_HINT = "Sem problema, nós ajudamos com isso.";
+
 export function QuestionField({ question: q, answers, setAnswer, token, audios, files, onMediaSync }: FieldProps) {
   const ans = answers[q.id];
   const set = (value: unknown) => setAnswer(q.id, { value });
@@ -77,62 +114,88 @@ export function QuestionField({ question: q, answers, setAnswer, token, audios, 
   const setText = (value: string) =>
     setAnswer(q.id, { value, ...(ans?.audioId ? { audioId: ans.audioId } : {}) });
 
+  if (q.type === "notice") {
+    return (
+      <div role="note" className="rounded-card border border-line bg-ink p-5">
+        <p className="text-[15px] leading-relaxed">{q.help}</p>
+      </div>
+    );
+  }
+
   let control: React.ReactNode = null;
+  // id real do campo (para o <label> do cabeçalho); controles de escolha usam grupo com aria-label.
+  let fieldId: string | undefined;
 
   switch (q.type) {
     case "text":
+      fieldId = q.id;
       control = (
-        <Input label={q.label} placeholder={q.placeholder} hint={q.help} value={str(ans)} onChange={(e) => set(e.target.value)} />
+        <Input label={q.label} hideLabel id={q.id} placeholder={q.placeholder} value={str(ans)} onChange={(e) => set(e.target.value)} />
       );
       break;
     case "phone":
+      fieldId = q.id;
       control = (
-        <Input label={q.label} type="tel" inputMode="tel" autoComplete="tel" placeholder={q.placeholder} hint={q.help} value={str(ans)} onChange={(e) => set(e.target.value)} />
+        <Input label={q.label} hideLabel id={q.id} type="tel" inputMode="tel" autoComplete="tel" placeholder={q.placeholder} value={str(ans)} onChange={(e) => set(e.target.value)} />
       );
       break;
-    case "email":
+    case "email": {
+      fieldId = q.id;
+      const typed = str(ans);
       control = (
         <Input
           label={q.label}
+          hideLabel
+          id={q.id}
           type="email"
           inputMode="email"
           autoComplete="email"
           placeholder={q.placeholder}
-          hint={q.help}
-          value={str(ans)}
+          value={typed}
           onChange={(e) => set(e.target.value)}
-          error={str(ans) !== "" && !EMAIL_RE.test(str(ans).trim()) ? "Confira o e-mail digitado." : undefined}
+          error={typed !== "" && !isValidEmail(typed) ? "Esse e-mail parece incompleto. Confira se tem o @." : undefined}
         />
       );
       break;
-    case "url":
+    }
+    case "url": {
+      fieldId = q.id;
+      const typed = str(ans);
       control = (
-        <Input label={q.label} type="url" inputMode="url" placeholder={q.placeholder ?? "https://"} hint={q.help} value={str(ans)} onChange={(e) => set(e.target.value)} />
+        <Input
+          label={q.label}
+          hideLabel
+          id={q.id}
+          type="url"
+          inputMode="url"
+          placeholder={q.placeholder ?? "www.exemplo.com.br"}
+          value={typed}
+          onChange={(e) => set(e.target.value)}
+          error={typed !== "" && !isValidUrl(typed) ? "Esse link não parece um endereço de site. Ex.: www.suaempresa.com.br" : undefined}
+        />
       );
       break;
-    case "textarea": {
-      const latestAudio = audios.filter((a) => a.question_id === q.id).at(-1);
+    }
+    case "textarea":
+      fieldId = q.id;
       control = (
         <div className="flex flex-col gap-3">
-          <Textarea label={q.label} placeholder={q.placeholder} hint={q.help} value={str(ans)} onChange={(e) => setText(e.target.value)} />
+          <Textarea label={q.label} hideLabel id={q.id} placeholder={q.placeholder} value={str(ans)} onChange={(e) => setText(e.target.value)} />
           {q.allowAudio ? (
             <AudioRecorder
               token={token}
               questionId={q.id}
-              existingAudioId={ans?.audioId ?? latestAudio?.id}
+              existingAudioId={ans?.audioId ?? audios.filter((a) => a.question_id === q.id).at(-1)?.id}
               onSync={(r: AudioSync) => onMediaSync(r)}
             />
           ) : null}
         </div>
       );
       break;
-    }
     case "single": {
       const current = typeof ans?.value === "string" ? ans.value : "";
       control = (
         <div role="radiogroup" aria-label={q.label} className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-white">{q.label}</p>
-          {q.help ? <p className="text-sm text-muted">{q.help}</p> : null}
           {q.options?.map((o) => {
             const selected = current === o.value;
             return (
@@ -165,6 +228,7 @@ export function QuestionField({ question: q, answers, setAnswer, token, audios, 
       control = (
         <Chips
           label={q.label}
+          hideLabel
           options={q.options ?? []}
           selected={strArray(ans)}
           onToggle={(v) => {
@@ -177,33 +241,32 @@ export function QuestionField({ question: q, answers, setAnswer, token, audios, 
     case "cards": {
       const current = typeof ans?.value === "string" ? ans.value : "";
       control = (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-white">{q.label}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {q.options?.map((o) => (
-              <OptionCard key={o.value} title={o.label} description={o.description} selected={current === o.value} onSelect={() => set(o.value)} />
-            ))}
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label={q.label}>
+          {q.options?.map((o) => (
+            <OptionCard key={o.value} title={o.label} description={o.description} selected={current === o.value} onSelect={() => set(o.value)} />
+          ))}
         </div>
       );
       break;
     }
     case "slider": {
+      fieldId = q.id;
       const current = typeof ans?.value === "number" ? ans.value : 5;
       control = (
-        <Slider label={q.label} value={current} min={0} max={10} step={1} leftLabel={q.leftLabel} rightLabel={q.rightLabel} onChange={(v) => set(v)} />
+        <Slider label={q.label} hideLabel id={q.id} value={current} min={0} max={10} step={1} leftLabel={q.leftLabel} rightLabel={q.rightLabel} onChange={(v) => set(v)} />
       );
       break;
     }
     case "links":
       control = (
-        <LinkListInput label={q.label} values={strArray(ans)} maxItems={q.maxItems ?? 5} hint={q.help} onChange={set} />
+        <LinkListInput label={q.label} hideLabel values={strArray(ans)} maxItems={q.maxItems ?? 5} placeholder={q.placeholder ?? "www.exemplo.com.br"} onChange={set} />
       );
       break;
     case "colors":
       control = (
         <ColorPicker
           label={q.label}
+          hideLabel
           value={str(ans)}
           unknown={ans?.unknown}
           unknownLabel={q.unknownLabel ?? "Não tenho, me sugira"}
@@ -212,38 +275,47 @@ export function QuestionField({ question: q, answers, setAnswer, token, audios, 
         />
       );
       break;
-    case "file": {
+    case "file":
       control = (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-white">{q.label}</p>
-          {q.help ? <p className="text-sm text-muted">{q.help}</p> : null}
-          <FileField
-            token={token}
-            questionId={q.id}
-            maxItems={q.maxItems ?? 5}
-            files={files.filter((f) => f.question_id === q.id)}
-            onSync={(r: FileSync) => onMediaSync(r)}
-          />
-        </div>
+        <FileField
+          token={token}
+          questionId={q.id}
+          maxItems={q.maxItems ?? 5}
+          files={files.filter((f) => f.question_id === q.id)}
+          onSync={(r: FileSync) => onMediaSync(r)}
+        />
       );
       break;
-    }
   }
 
   const skipped = ans?.skipped === true;
   const unknown = ans?.unknown === true && q.type !== "colors";
+  const unknownButtonLabel = q.unknownLabel ?? "Não sei";
 
   return (
     <div className="flex flex-col gap-3">
+      <FieldHeader question={q} htmlFor={fieldId} />
       {control}
       {!q.required && !skipped && !unknown ? (
         <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" onClick={() => setAnswer(q.id, { value: null, skipped: true })} className="min-h-[44px] px-4 text-sm">
+          <Button
+            variant="ghost"
+            title={SKIP_HINT}
+            aria-label={`Pular por enquanto. ${SKIP_HINT}`}
+            onClick={() => setAnswer(q.id, { value: null, skipped: true })}
+            className="min-h-[44px] px-4 text-sm"
+          >
             Pular por enquanto
           </Button>
           {q.allowUnknown ? (
-            <Button variant="ghost" onClick={() => setAnswer(q.id, { value: null, unknown: true })} className="min-h-[44px] px-4 text-sm">
-              {q.unknownLabel ?? "Não sei"}
+            <Button
+              variant="ghost"
+              title={UNKNOWN_HINT}
+              aria-label={`${unknownButtonLabel}. ${UNKNOWN_HINT}`}
+              onClick={() => setAnswer(q.id, { value: null, unknown: true })}
+              className="min-h-[44px] px-4 text-sm"
+            >
+              {unknownButtonLabel}
             </Button>
           ) : null}
         </div>
