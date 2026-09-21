@@ -32,3 +32,16 @@ body::after {
 ::selection { background: var(--color-burgundy); color: #fff; }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Entrada do Reveal: só esconde pré-paint quando há movimento permitido.
+   Sem JS, o HTML sai sem essas classes — sempre visível. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-armed { opacity: 0; }
+}
+
+.reveal-play { animation: reveal-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
 
 interface RevealProps {
   children: React.ReactNode;
@@ -10,38 +9,88 @@ interface RevealProps {
   as?: "div" | "li";
 }
 
+/** Após esse tempo, o conteúdo aparece mesmo se o observer falhar. */
+const FALLBACK_MS = 2500;
+
+// Layout effect só no cliente (evita warning no SSR).
+const useLayoutEffectSafe =
+  typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect;
+
+type Mode = "idle" | "armed" | "play";
+
 /**
  * Fade-in com leve subida ao entrar na viewport; dispara uma única vez.
- * Seguro sem JS: o HTML sai visível do servidor e o estado escondido só
- * existe após a hidratação (sem JS, nada some).
+ *
+ * Resiliente por construção:
+ * - SSR e sem JS: sempre visível (nenhum estilo escondido no HTML).
+ * - Com JS: abaixo da dobra, esconde pré-paint e revela com keyframes CSS
+ *   (independe de requestAnimationFrame); timer de segurança garante que
+ *   nada fica preso invisível.
+ * - prefers-reduced-motion: o kill-switch global do CSS anula a animação e
+ *   o conteúdo permanece visível.
  */
 export function Reveal({ children, delay = 0, className, as = "div" }: RevealProps) {
-  const reduceMotion = useReducedMotion();
   const ref = React.useRef<Element | null>(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
-  const [mounted, setMounted] = React.useState(false);
-  // Mount-gate proposital: o HTML do servidor sai visível (seguro sem JS) e
-  // só após hidratar o estado escondido passa a existir.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  React.useEffect(() => setMounted(true), []);
+  const [mode, setMode] = React.useState<Mode>("idle");
 
-  if (reduceMotion || !mounted) {
-    return as === "li" ? <li className={className}>{children}</li> : <div className={className}>{children}</div>;
-  }
+  // Pré-paint: decide esconder (abaixo da dobra) ou animar direto.
+  useLayoutEffectSafe(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (el.getBoundingClientRect().top <= window.innerHeight * 0.9) {
+      setMode("play");
+      return;
+    }
+    setMode("armed");
+    let done = false;
+    const play = () => {
+      if (done) return;
+      done = true;
+      setMode("play");
+    };
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          play();
+          io.disconnect();
+          clearTimeout(timer);
+        }
+      },
+      { rootMargin: "0px 0px -40px 0px" },
+    );
+    io.observe(el);
+    const timer = setTimeout(() => {
+      play();
+      io.disconnect();
+    }, FALLBACK_MS);
+    return () => {
+      io.disconnect();
+      clearTimeout(timer);
+    };
+  }, []);
 
-  const Comp = as === "li" ? motion.li : motion.div;
   const setRef = (el: Element | null) => {
     ref.current = el;
   };
-  return (
-    <Comp
-      ref={setRef}
-      className={className}
-      initial={false}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-      transition={{ duration: 0.55, delay, ease: "easeOut" }}
-    >
+
+  const cls = [
+    className ?? "",
+    mode === "armed" ? "reveal-armed" : "",
+    mode === "play" ? "reveal-play" : "",
+  ]
+    .join(" ")
+    .trim();
+
+  const style =
+    mode === "play" && delay > 0 ? { animationDelay: `${delay}s` } : undefined;
+
+  return as === "li" ? (
+    <li ref={setRef as React.Ref<HTMLLIElement>} className={cls} style={style}>
       {children}
-    </Comp>
+    </li>
+  ) : (
+    <div ref={setRef as React.Ref<HTMLDivElement>} className={cls} style={style}>
+      {children}
+    </div>
   );
 }
