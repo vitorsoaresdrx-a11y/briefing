@@ -31,7 +31,7 @@ function formatDate(iso: string | null): string {
 export default async function AdminListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; type?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; type?: string; unread?: string }>;
 }) {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
@@ -40,6 +40,7 @@ export default async function AdminListPage({
   const q = (sp.q ?? "").trim().slice(0, 100);
   const status = sp.status ?? "";
   const type = sp.type ?? "";
+  const unreadOnly = sp.unread === "1";
 
   const supabase = createAdminClient();
   let query = supabase
@@ -51,6 +52,9 @@ export default async function AdminListPage({
   if (status === "rascunho" || status === "em_andamento" || status === "concluido") {
     query = query.eq("status", status);
   }
+  if (unreadOnly) {
+    query = query.eq("status", "concluido").is("viewed_at", null);
+  }
   if (type && (PROJECT_TYPES as readonly string[]).includes(type)) {
     query = query.eq("project_type", type);
   }
@@ -59,9 +63,14 @@ export default async function AdminListPage({
     if (safe) query = query.or(`client_name.ilike.%${safe}%,company.ilike.%${safe}%`);
   }
 
-  const [{ data: rows }, { data: all }] = await Promise.all([
+  const [{ data: rows }, { data: all }, { count: unreadCount }] = await Promise.all([
     query,
     supabase.from("briefings").select("status"),
+    supabase
+      .from("briefings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "concluido")
+      .is("viewed_at", null),
   ]);
 
   const counts = { rascunho: 0, em_andamento: 0, concluido: 0 };
@@ -95,7 +104,30 @@ export default async function AdminListPage({
         </Link>
       </div>
 
-      <form method="get" className="mt-10 grid gap-3 sm:grid-cols-[1fr_200px_220px_auto]">
+      <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="Filtros rápidos">
+        <Link
+          href="/admin"
+          aria-current={unreadOnly ? undefined : "page"}
+          className={[
+            "inline-flex min-h-[44px] items-center rounded-full border px-4 text-sm transition-colors",
+            unreadOnly ? "border-line text-muted hover:text-white" : "border-burgundy-glow bg-burgundy/20 text-white",
+          ].join(" ")}
+        >
+          Todos
+        </Link>
+        <Link
+          href="/admin?unread=1"
+          aria-current={unreadOnly ? "page" : undefined}
+          className={[
+            "inline-flex min-h-[44px] items-center rounded-full border px-4 text-sm transition-colors",
+            unreadOnly ? "border-burgundy-glow bg-burgundy/20 text-white" : "border-line text-muted hover:text-white",
+          ].join(" ")}
+        >
+          Não lidos{unreadCount ? ` (${unreadCount})` : ""}
+        </Link>
+      </div>
+
+      <form method="get" className="mt-6 grid gap-3 sm:grid-cols-[1fr_200px_220px_auto]">
         <label className="sr-only" htmlFor="q">
           Buscar por nome ou empresa
         </label>
@@ -145,8 +177,10 @@ export default async function AdminListPage({
       </form>
 
       <ul className="mt-8 flex flex-col border-t border-line">
-        {(rows ?? []).map((b) => (
-          <li key={b.id} className="border-b border-line py-5">
+        {(rows ?? []).map((b) => {
+          const fresh = b.status === "concluido" && !b.viewed_at;
+          return (
+          <li key={b.id} className={`border-b border-line py-5 ${fresh ? "rounded-ctl bg-burgundy/10 px-4" : ""}`}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
               <Link href={`/admin/briefings/${b.id}`} className="group min-w-0">
                 <p className="truncate text-lg font-semibold group-hover:underline group-hover:underline-offset-4">
@@ -154,7 +188,14 @@ export default async function AdminListPage({
                   {b.company ? <span className="font-normal text-muted"> · {b.company}</span> : null}
                 </p>
               </Link>
-              <StatusBadge status={b.status} fresh={b.status === "concluido" && !b.viewed_at} />
+              <span className="flex items-center gap-2">
+                {fresh ? (
+                  <span className="inline-flex min-h-[32px] items-center rounded-full bg-burgundy px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-white">
+                    Novo
+                  </span>
+                ) : null}
+                <StatusBadge status={b.status} />
+              </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
               <span>{typeLabel(b.project_type)}</span>
@@ -163,7 +204,8 @@ export default async function AdminListPage({
               {siteUrl ? <CopyLinkButton url={`${siteUrl}/b/${b.token}`} label="Link do cliente" /> : null}
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
       {(rows ?? []).length === 0 ? (
         <p className="mt-8 leading-relaxed text-muted">
@@ -174,16 +216,15 @@ export default async function AdminListPage({
   );
 }
 
-function StatusBadge({ status, fresh }: { status: string; fresh: boolean }) {
+function StatusBadge({ status }: { status: string }) {
   const label = STATUS_LABEL[status] ?? status;
   return (
     <span
       className={[
-        "inline-flex min-h-[32px] items-center gap-2 rounded-full border px-3 font-mono text-[11px] uppercase tracking-[0.14em]",
+        "inline-flex min-h-[32px] items-center rounded-full border px-3 font-mono text-[11px] uppercase tracking-[0.14em]",
         status === "concluido" ? "border-burgundy-glow text-burgundy-glow" : "border-line text-muted",
       ].join(" ")}
     >
-      {fresh ? <span aria-hidden="true" className="h-2 w-2 rounded-full bg-burgundy-glow animate-pulse" /> : null}
       {label}
     </span>
   );

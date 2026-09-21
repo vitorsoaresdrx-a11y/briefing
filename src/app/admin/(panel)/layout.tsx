@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/admin-auth";
 import { LogoutButton } from "@/components/admin/LogoutButton";
+import { UnreadMonitor } from "@/components/admin/UnreadMonitor";
 
 export const metadata: Metadata = {
   title: "Painel — Briefings",
@@ -26,6 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </span>
           </Link>
           <nav className="flex items-center gap-5" aria-label="Painel">
+            <UnreadMonitor />
             <Link href="/admin" className="text-sm text-muted hover:text-white">
               Briefings
             </Link>
