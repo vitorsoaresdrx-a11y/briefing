@@ -66,6 +66,30 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      briefing_voice_sessions: {
+        // Trilha de auditoria do briefing por voz (transcrição + campos
+        // gravados via function call). As respostas ficam em briefings.answers.
+        Row: {
+          id: string;
+          briefing_id: string;
+          transcript: string;
+          fields_saved: string[];
+          created_at: string;
+          ended_at: string | null;
+        };
+        Insert: {
+          briefing_id: string;
+          transcript?: string;
+          fields_saved?: string[];
+          ended_at?: string | null;
+        };
+        Update: Partial<{
+          transcript: string;
+          fields_saved: string[];
+          ended_at: string | null;
+        }>;
+        Relationships: [];
+      };
       briefing_audios: {
         Row: {
           id: string;

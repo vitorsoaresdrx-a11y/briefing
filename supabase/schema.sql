@@ -62,6 +62,22 @@ create index if not exists briefings_status_created_idx on public.briefings (sta
 create index if not exists briefing_files_briefing_idx on public.briefing_files (briefing_id);
 create index if not exists briefing_audios_briefing_question_idx on public.briefing_audios (briefing_id, question_id);
 
+-- Sessões do briefing por voz (auditoria): transcrição completa da conversa
+-- e lista dos campos gravados via function call, vinculadas ao briefing.
+-- As respostas em si ficam no mesmo `briefings.answers` do formulário em
+-- texto — esta tabela é só a trilha de auditoria, nunca a fonte de verdade.
+create table if not exists public.briefing_voice_sessions (
+  id uuid primary key default gen_random_uuid(),
+  briefing_id uuid not null references public.briefings(id) on delete cascade,
+  transcript text not null default '',
+  fields_saved text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  ended_at timestamptz
+);
+
+create index if not exists briefing_voice_sessions_briefing_idx
+  on public.briefing_voice_sessions (briefing_id, created_at desc);
+
 create or replace function public.set_updated_at() returns trigger
 language plpgsql as $$ begin new.updated_at = now(); return new; end $$;
 
@@ -74,6 +90,7 @@ for each row execute function public.set_updated_at();
 alter table public.briefings enable row level security;
 alter table public.briefing_files enable row level security;
 alter table public.briefing_audios enable row level security;
+alter table public.briefing_voice_sessions enable row level security;
 
 -- Buckets privados
 insert into storage.buckets (id, name, public, file_size_limit)

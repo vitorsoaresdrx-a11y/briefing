@@ -24,6 +24,12 @@ const envSchema = z.object({
   TRANSCRIBE_PROVIDER: z.enum(["groq", "openai"]).default("groq"),
   GROQ_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
+  // Briefing por voz (Gemini Live API): opcional. Sem chave, a rota de
+  // voice-token responde com um erro claro; o resto do site funciona normal.
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_LIVE_MODEL: z.string().optional(),
+  GEMINI_LIVE_VOICE: z.string().optional(),
+  GEMINI_LIVE_AFFECTIVE: z.string().optional(),
 });
 
 function loadEnv() {
@@ -36,6 +42,10 @@ function loadEnv() {
     TRANSCRIBE_PROVIDER: process.env.TRANSCRIBE_PROVIDER,
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GEMINI_LIVE_MODEL: process.env.GEMINI_LIVE_MODEL,
+    GEMINI_LIVE_VOICE: process.env.GEMINI_LIVE_VOICE,
+    GEMINI_LIVE_AFFECTIVE: process.env.GEMINI_LIVE_AFFECTIVE,
   });
 
   if (!parsed.success) {

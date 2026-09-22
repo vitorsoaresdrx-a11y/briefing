@@ -7,6 +7,7 @@ import { visibleQuestions, visibleSteps } from "@/lib/briefing/conditions";
 import { formatAnswer, questionLabel } from "@/lib/briefing/format";
 import { buildSummary } from "@/lib/briefing/summary";
 import { listMedia } from "@/lib/briefing/server-helpers";
+import { listVoiceSessions } from "@/lib/voice/voice-audit";
 import type { Answers } from "@/lib/briefing/types";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { CopySummaryButton, DownloadJsonButton } from "@/components/admin/ExportButtons";
@@ -49,6 +50,7 @@ export default async function AdminDetailPage({ params }: { params: Promise<{ id
   }
 
   const { audios, files } = await listMedia(supabase, id);
+  const voiceSessions = await listVoiceSessions(supabase, id);
   const answers = (briefing.answers ?? {}) as Answers;
   const steps = visibleSteps(answers).filter((s) => visibleQuestions(s, answers).length > 0);
   const summary = buildSummary(answers);
@@ -91,6 +93,13 @@ export default async function AdminDetailPage({ params }: { params: Promise<{ id
       mime_type: f.mime_type,
       size_bytes: f.size_bytes,
       kind: f.kind,
+    })),
+    voice_sessions: voiceSessions.map((v) => ({
+      id: v.id,
+      created_at: v.created_at,
+      ended_at: v.ended_at,
+      fields_saved: v.fields_saved,
+      transcript: v.transcript,
     })),
     summary_markdown: summary,
   };
@@ -199,6 +208,37 @@ export default async function AdminDetailPage({ params }: { params: Promise<{ id
           </section>
         ))}
       </div>
+
+      {voiceSessions.length > 0 ? (
+        <section className="border-t border-line py-8">
+          <h2 className="font-display text-3xl uppercase tracking-[-0.01em]">
+            Sessões de voz ({voiceSessions.length})
+          </h2>
+          <div className="mt-6 flex flex-col gap-4">
+            {voiceSessions.map((v) => (
+              <div key={v.id} className="rounded-ctl border border-line bg-ink p-5">
+                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
+                  {formatDateTime(v.created_at)}
+                  {v.ended_at ? ` · encerrada ${formatDateTime(v.ended_at)}` : " · em andamento"}
+                  {v.fields_saved.length > 0 ? ` · ${v.fields_saved.length} campos` : ""}
+                </p>
+                {v.fields_saved.length > 0 ? (
+                  <p className="mt-2 text-sm text-muted">
+                    {v.fields_saved.map((f) => questionLabel(f)).join(" · ")}
+                  </p>
+                ) : null}
+                {v.transcript ? (
+                  <p className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap text-[15px] leading-relaxed">
+                    {v.transcript}
+                  </p>
+                ) : (
+                  <p className="mt-3 text-sm text-muted">Transcrição ainda não recebida.</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {files.length > 0 ? (
         <section className="border-t border-line py-8">

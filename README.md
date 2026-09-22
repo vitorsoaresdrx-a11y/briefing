@@ -49,6 +49,10 @@ O painel (`/admin`) usa Supabase Auth + allowlist de e-mails:
 | `TRANSCRIBE_PROVIDER`         | servidor    | `groq` (padrão) ou `openai`                                      |
 | `GROQ_API_KEY`                | servidor    | chave da Groq (se `TRANSCRIBE_PROVIDER=groq`)                    |
 | `OPENAI_API_KEY`              | servidor    | chave da OpenAI (se `TRANSCRIBE_PROVIDER=openai`)                |
+| `GEMINI_API_KEY`              | servidor    | chave do AI Studio — liga o briefing por voz (sem ela, só o texto funciona) |
+| `GEMINI_LIVE_MODEL`           | servidor    | modelo da Live API (padrão: `gemini-3.8-live`)                   |
+| `GEMINI_LIVE_VOICE`           | servidor    | timbre da voz (vazio = padrão do Google; ex.: `Aoede`, `Puck`, `Kore` — voz rejeitada derruba a sessão, então teste uma por vez) |
+| `GEMINI_LIVE_AFFECTIVE`       | servidor    | `1` liga entonação adaptativa (pode ser rejeitada conforme o modelo) |
 
 `src/lib/env.ts` valida tudo com zod e falha cedo com mensagem em pt-BR.
 
@@ -84,3 +88,15 @@ Modelos em `src/lib/transcribe.ts`: `whisper-large-v3` na Groq (alternativa bara
 - `supabase/schema.sql` — tabelas, RLS e buckets
 
 Fluxo: landing → `POST /api/briefing` cria o rascunho → wizard salva com `PATCH` (debounce) → revisão → `POST .../submit` conclui → admin é avisado no painel (selo **Novo**, contador, polling de 30 s com toast). Notificações externas (e-mail, WhatsApp etc.) entram pelo ponto de extensão `onBriefingCompleted` (`src/lib/briefing/completed.ts`), hoje no-op.
+
+## Briefing por voz (Gemini Live API)
+
+Canal alternativo ao wizard em texto, gravando no **mesmo** `briefings.answers` (sem mudar o schema — só adiciona a tabela de auditoria `briefing_voice_sessions`; rode o `schema.sql` de novo, é idempotente):
+
+1. Cliente abre `/b/<token>/voz` e toca em **Iniciar briefing por voz** (o pedido de microfone acontece dentro do clique, como o navegador exige).
+2. `POST /api/briefing/[token]/voice-token` cria um token efêmero do Google com roteiro (`src/lib/briefing/voice-script.ts`, gerado do `steps.ts`), ferramentas e voz travados no servidor. A `GEMINI_API_KEY` nunca chega ao navegador.
+3. O navegador conecta **direto** ao Google (sem proxy) e conversa por áudio. Cada resposta vira uma function call `salvar_resposta_briefing` → `POST .../voice-answer`, que usa o mesmo merge/completude do `PATCH` do texto. Ao fim, `finalizar_briefing` → `POST .../submit` (o mesmo do texto, com a mesma validação de obrigatórias).
+4. A transcrição vai em snapshots para `POST .../voice-transcript` e fica visível no detalhe do admin, junto dos campos gravados por voz.
+5. Na tela de voz, a pergunta atual também pode ser respondida por widgets (texto, opções, escala, envio de arquivos) gerados do mesmo `steps.ts` (`src/lib/voice/widgets.ts`). Tudo que entra por widget é salvo pela `voice-answer` e avisado à IA por mensagem de sistema, que confirma e segue. As frases faladas ficam em `src/lib/briefing/voice-say.ts` (sem "selecione/mar que/clique"). A tela mostra só o espectro de áudio + checklist "Registrado" (sem transcrição visível; ela vai só para a auditoria).
+
+Como cada campo é salvo na hora, queda de conexão não perde nada: é só começar de novo que a assistente continua de onde parou (o roteiro injetado no token já lista o que foi respondido).

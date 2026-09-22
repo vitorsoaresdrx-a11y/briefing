@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BriefingRow, BriefingStatus } from "@/lib/supabase/database";
 import type { Answers } from "@/lib/briefing/types";
+import { calcCompleteness } from "@/lib/briefing/completeness";
 import { AUDIO_BUCKET, FILES_BUCKET, type AudioInfo, type FileInfo } from "./media";
 
 export const TOKEN_RE = /^[0-9a-f]{48}$/i;
@@ -52,6 +53,54 @@ export function denormalizedColumns(answers: Answers) {
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 export type { AdminClient };
+
+function clampAnswerValue(v: unknown): unknown {
+  if (typeof v === "string") return v.slice(0, 15000);
+  if (Array.isArray(v))
+    return v.slice(0, 20).map((i) => (typeof i === "string" ? i.slice(0, 2000) : i));
+  return v;
+}
+
+/**
+ * Aplica um lote de respostas (parcial) sobre as respostas já salvas.
+ * Usado tanto pelo PATCH do wizard em texto quanto pelas function calls
+ * do briefing por voz — os dois caminhos gravam exatamente da mesma forma.
+ */
+export function mergeAnswers(current: Answers, incoming: Answers): Answers {
+  const merged: Answers = { ...current };
+  for (const [qid, ans] of Object.entries(incoming)) {
+    merged[qid] = {
+      ...(ans.skipped !== undefined ? { skipped: ans.skipped } : {}),
+      ...(ans.unknown !== undefined ? { unknown: ans.unknown } : {}),
+      ...(ans.audioId !== undefined ? { audioId: ans.audioId } : {}),
+      value: clampAnswerValue(ans.value),
+    };
+  }
+  return merged;
+}
+
+/** Recalcula completude e grava as respostas mescladas no banco. */
+export async function persistAnswers(
+  supabase: AdminClient,
+  briefing: BriefingRow,
+  merged: Answers,
+  currentStep?: string,
+): Promise<{ percent: number; pending: string[] }> {
+  const { percent, pending } = calcCompleteness(merged);
+  const { error } = await supabase
+    .from("briefings")
+    .update({
+      answers: merged,
+      current_step: currentStep ?? briefing.current_step,
+      completeness: percent,
+      pending_fields: pending,
+      status: "em_andamento",
+      ...denormalizedColumns(merged),
+    })
+    .eq("id", briefing.id);
+  if (error) throw error;
+  return { percent, pending };
+}
 
 /** Pergunta derivada do path <briefing_id>/<question_id>/<arquivo>. */
 export function questionIdFromPath(storagePath: string): string {

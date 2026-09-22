@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
@@ -357,9 +358,19 @@ export function Wizard({ token }: { token: string }) {
                 </h1>
                 {screen.step.subtitle ? <p className="mt-4 leading-relaxed text-muted">{screen.step.subtitle}</p> : null}
                 {safePos === 0 ? (
-                  <p className="mt-4 border-l-2 border-burgundy-glow pl-4 text-sm leading-relaxed text-muted">
-                    Você pode sair e voltar quando quiser — este link guarda tudo.
-                  </p>
+                  <>
+                    <p className="mt-4 border-l-2 border-burgundy-glow pl-4 text-sm leading-relaxed text-muted">
+                      Você pode sair e voltar quando quiser — este link guarda tudo.
+                    </p>
+                    <p className="mt-3 text-sm leading-relaxed">
+                      <Link
+                        href={`/b/${token}/voz`}
+                        className="text-white underline underline-offset-4 hover:text-burgundy-glow"
+                      >
+                        Prefere falar? Faça o briefing por voz
+                      </Link>
+                    </p>
+                  </>
                 ) : null}
 
                 <div className="mt-10 flex flex-col gap-10">

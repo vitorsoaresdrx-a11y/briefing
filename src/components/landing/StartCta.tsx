@@ -5,9 +5,14 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-// TODO(Fase 2): a rota POST /api/briefing (criação de rascunho) ainda não
-// existe; quando ela for criada, este botão passa a funcionar sem mudanças.
-export function StartCta({ label = "Começar briefing" }: { label?: string }) {
+export function StartCta({
+  label = "Começar briefing",
+  destination = "voz",
+}: {
+  label?: string;
+  /** Para onde vai após criar o rascunho: voz (padrão) ou texto. */
+  destination?: "voz" | "texto";
+}) {
   const router = useRouter();
   const [state, setState] = React.useState<"idle" | "loading" | "error">("idle");
 
@@ -22,7 +27,7 @@ export function StartCta({ label = "Começar briefing" }: { label?: string }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { token?: string };
       if (!data.token) throw new Error("token ausente");
-      router.push(`/b/${data.token}`);
+      router.push(destination === "voz" ? `/b/${data.token}/voz` : `/b/${data.token}`);
     } catch {
       setState("error");
     }

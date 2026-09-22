@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { calcCompleteness } from "@/lib/briefing/completeness";
 import type { Answers } from "@/lib/briefing/types";
 import {
-  denormalizedColumns,
   getBriefingByToken,
   listMedia,
+  mergeAnswers,
   notFound,
+  persistAnswers,
   serviceUnavailable,
 } from "@/lib/briefing/server-helpers";
 
@@ -24,13 +24,6 @@ const patchSchema = z.object({
   ),
   current_step: z.string().max(64).optional(),
 });
-
-function clampString(v: unknown): unknown {
-  if (typeof v === "string") return v.slice(0, 15000);
-  if (Array.isArray(v))
-    return v.slice(0, 20).map((i) => (typeof i === "string" ? i.slice(0, 2000) : i));
-  return v;
-}
 
 export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
@@ -75,30 +68,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ token: string
     }
 
     const incoming = parsed.data.answers as Answers;
-    const merged: Answers = { ...briefing.answers };
-    for (const [qid, ans] of Object.entries(incoming)) {
-      merged[qid] = {
-        ...(ans.skipped !== undefined ? { skipped: ans.skipped } : {}),
-        ...(ans.unknown !== undefined ? { unknown: ans.unknown } : {}),
-        ...(ans.audioId !== undefined ? { audioId: ans.audioId } : {}),
-        value: clampString(ans.value),
-      };
-    }
-
-    const { percent, pending } = calcCompleteness(merged);
+    const merged = mergeAnswers(briefing.answers, incoming);
     const supabase = createAdminClient();
-    const { error } = await supabase
-      .from("briefings")
-      .update({
-        answers: merged,
-        current_step: parsed.data.current_step ?? briefing.current_step,
-        completeness: percent,
-        pending_fields: pending,
-        status: "em_andamento",
-        ...denormalizedColumns(merged),
-      })
-      .eq("id", briefing.id);
-    if (error) throw error;
+    const { percent, pending } = await persistAnswers(
+      supabase,
+      briefing,
+      merged,
+      parsed.data.current_step,
+    );
 
     return Response.json({ completeness: percent, pending_fields: pending });
   } catch (e) {
