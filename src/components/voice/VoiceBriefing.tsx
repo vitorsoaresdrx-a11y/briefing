@@ -10,6 +10,7 @@ import { Eyebrow } from "@/components/ui/Eyebrow";
 import { AudioOutPlayer, MicStreamer } from "@/lib/voice/browser-audio";
 import { findQuestion } from "@/lib/briefing/conditions";
 import { STEPS } from "@/lib/briefing/steps";
+import { VOICE_SAY } from "@/lib/briefing/voice-say";
 import { voiceWidgetFor, type VoiceWidget } from "@/lib/voice/widgets";
 import { createClient } from "@/lib/supabase/browser";
 import { FILES_BUCKET, type FileInfo } from "@/lib/briefing/media";
@@ -65,6 +66,56 @@ function micErrorMessage(err: unknown): string {
   return "Não foi possível acessar o microfone neste navegador. Tente outro navegador ou responda por texto.";
 }
 
+const DETECT_STOPWORDS = new Set([
+  "para", "com", "uma", "uns", "umas", "seu", "sua", "seus", "suas", "voce", "que",
+  "qual", "quais", "como", "onde", "quando", "isso", "esta", "este", "essa", "esse",
+  "muito", "mais", "nas", "nos", "das", "dos", "ele", "ela", "eles", "foi", "ser",
+  "tem", "meu", "minha", "meus", "diga", "fala", "fale", "conta", "pra", "mim",
+  "aqui", "tela", "pode", "sem", "sobre", "entre", "ate", "aos", "nao", "sim",
+  "bem", "toda", "todo", "tudo", "cada", "qualquer", "coisa", "hoje", "ainda",
+  "entao", "dentro", "dois", "duas", "tres", "pode", "ditar", "digitar", "digita",
+  "dita", "responda", "pergunta", "assistente",
+]);
+
+function normalizeWords(s: string): string[] {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length >= 3 && !DETECT_STOPWORDS.has(w));
+}
+
+/**
+ * Descobre qual pergunta a IA está fazendo agora, cruzando as últimas falas
+ * dela com o texto de cada pergunta pendente. Evita que o painel da tela
+ * fique preso numa pergunta antiga quando a conversa já avançou.
+ */
+function detectCurrentQuestion(pending: string[], entries: TranscriptEntry[]): string | null {
+  const recent = entries
+    .filter((e) => e.role === "ia")
+    .slice(-2)
+    .map((e) => e.text)
+    .join(" ");
+  const words = new Set(normalizeWords(recent));
+  if (words.size === 0) return null;
+  let best: string | null = null;
+  let bestScore = 0;
+  for (const id of pending) {
+    const text = VOICE_SAY[id] ?? findQuestion(id)?.question.label ?? "";
+    const keys = new Set(normalizeWords(text));
+    let score = 0;
+    for (const k of keys) {
+      if (words.has(k)) score++;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = id;
+    }
+  }
+  return bestScore >= 2 ? best : null;
+}
+
 export function VoiceBriefing({ token }: { token: string }) {
   const [phase, setPhase] = React.useState<Phase>("intro");
   const [error, setError] = React.useState<string | null>(null);
@@ -73,6 +124,7 @@ export function VoiceBriefing({ token }: { token: string }) {
   const [speaking, setSpeaking] = React.useState(false);
   const [savedFields, setSavedFields] = React.useState<SavedField[]>([]);
   const [pendingFields, setPendingFields] = React.useState<string[]>([]);
+  const [transcriptVersion, setTranscriptVersion] = React.useState(0);
   const [voiceFiles, setVoiceFiles] = React.useState<FileInfo[]>([]);
   const [endReason, setEndReason] = React.useState<EndReason>("manual");
   const [elapsed, setElapsed] = React.useState(0);
@@ -93,18 +145,29 @@ export function VoiceBriefing({ token }: { token: string }) {
 
   const textUrl = `/b/${token}`;
 
-  /** Pergunta atual (primeira pendente com widget) — o painel de resposta da tela. */
+  /**
+   * Pergunta atual no ar: primeiro tenta detectar pela fala da IA (cobre
+   * conversa fora de ordem ou avanço sem salvar); senão, a primeira
+   * pendente com widget.
+   */
   const current = React.useMemo(() => {
+    const detected = detectCurrentQuestion(pendingFields, transcriptRef.current);
+    if (detected) {
+      const w = voiceWidgetFor(detected);
+      if (w && w.widget.kind !== "none") return w;
+    }
     for (const id of pendingFields) {
       const w = voiceWidgetFor(id);
       if (w && w.widget.kind !== "none") return w;
     }
     return null;
-  }, [pendingFields]);
+    // transcriptRef é lido de propósito via transcriptVersion (tick de mudança).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFields, transcriptVersion]);
 
   const getMicLevel = React.useCallback(() => micRef.current?.getLevel() ?? 0, []);
 
-  /** Transcrição só para auditoria (não é exibida na tela). */
+  /** Transcrição só para auditoria + detecção da pergunta atual (não é exibida). */
   function pushTranscript(role: "voce" | "ia", text: string) {
     const clean = text.trim();
     if (!clean) return;
@@ -113,6 +176,7 @@ export function VoiceBriefing({ token }: { token: string }) {
       ...transcriptRef.current.slice(-99),
       { id: idRef.current, role, text: clean },
     ];
+    setTranscriptVersion((v) => v + 1);
   }
 
   /** Envia a transcrição acumulada para a auditoria (best-effort). */
@@ -406,11 +470,51 @@ export function VoiceBriefing({ token }: { token: string }) {
     }
   }
 
+  /** Recarrega pendentes, checklist e arquivos do servidor (fonte da verdade). */
+  const refreshState = React.useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/briefing/${token}`, { cache: "no-store" });
+      if (res.status === 404) return false;
+      if (!res.ok) return true;
+      const data = (await res.json()) as {
+        answers?: Record<string, { value?: unknown }>;
+        pending_fields?: string[];
+        files?: FileInfo[];
+      };
+      if (Array.isArray(data.pending_fields)) setPendingFields(data.pending_fields);
+      const ids = Object.keys(data.answers ?? {}).filter((id) => {
+        const v = data.answers?.[id]?.value;
+        return (
+          v !== undefined &&
+          v !== null &&
+          (typeof v === "string" ? v.trim() !== "" : Array.isArray(v) ? v.length > 0 : true)
+        );
+      });
+      ids.sort((a, b) => (QUESTION_ORDER.get(a) ?? 999) - (QUESTION_ORDER.get(b) ?? 999));
+      setSavedFields((prev) => {
+        const known = new Set(prev.map((f) => f.id));
+        const extra = ids
+          .filter((id) => !known.has(id))
+          .map((id) => ({ id, label: findQuestion(id)?.question.label ?? id }));
+        if (extra.length === 0) return prev;
+        const merged = [...prev, ...extra];
+        merged.sort((a, b) => (QUESTION_ORDER.get(a.id) ?? 999) - (QUESTION_ORDER.get(b.id) ?? 999));
+        return merged;
+      });
+      if (Array.isArray(data.files)) setVoiceFiles(data.files);
+      return true;
+    } catch {
+      // Painel da tela aparece conforme as respostas chegam.
+      return true;
+    }
+  }, [token]);
+
   async function start() {
     abandonPreviousSession();
     setError(null);
     setMicDenied(false);
     transcriptRef.current = [];
+    setTranscriptVersion(0);
     setSavedFields([]);
     setPendingFields([]);
     setVoiceFiles([]);
@@ -424,34 +528,11 @@ export function VoiceBriefing({ token }: { token: string }) {
     setPhase("starting");
 
     // 0. Estado atual (checklist + pergunta atual da tela).
-    try {
-      const res = await fetch(`/api/briefing/${token}`, { cache: "no-store" });
-      if (res.status === 404) {
-        setError("Este link de briefing não existe. Confira o endereço.");
-        setPhase("intro");
-        return;
-      }
-      if (res.ok) {
-        const data = (await res.json()) as {
-          answers?: Record<string, { value?: unknown }>;
-          pending_fields?: string[];
-          files?: FileInfo[];
-        };
-        if (Array.isArray(data.pending_fields)) setPendingFields(data.pending_fields);
-        const ids = Object.keys(data.answers ?? {}).filter((id) => {
-          const v = data.answers?.[id]?.value;
-          return (
-            v !== undefined &&
-            v !== null &&
-            (typeof v === "string" ? v.trim() !== "" : Array.isArray(v) ? v.length > 0 : true)
-          );
-        });
-        ids.sort((a, b) => (QUESTION_ORDER.get(a) ?? 999) - (QUESTION_ORDER.get(b) ?? 999));
-        setSavedFields(ids.map((id) => ({ id, label: findQuestion(id)?.question.label ?? id })));
-        if (Array.isArray(data.files)) setVoiceFiles(data.files);
-      }
-    } catch {
-      // Painel da tela aparece conforme as respostas chegam.
+    const found = await refreshState();
+    if (!found) {
+      setError("Este link de briefing não existe. Confira o endereço.");
+      setPhase("intro");
+      return;
     }
 
     // 1. Token efêmero (função Vercel curta; a GEMINI_API_KEY fica no servidor).
@@ -622,12 +703,15 @@ export function VoiceBriefing({ token }: { token: string }) {
     }
   }
 
-  // Cronômetro + snapshots de auditoria + aviso ao fechar a aba em conversa.
+  // Cronômetro + snapshots de auditoria + refresh do painel + aviso ao fechar a aba.
   React.useEffect(() => {
     if (phase !== "live") return;
     const timer = setInterval(() => setElapsed((s) => s + 1), 1000);
-    const snapshots = setInterval(() => {
+    const sync = setInterval(() => {
       void postTranscript(false);
+      // Mantém pergunta atual e checklist sincronizados com o servidor
+      // (cobre saves que chegaram por outro caminho).
+      void refreshState();
     }, 10000);
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -635,10 +719,10 @@ export function VoiceBriefing({ token }: { token: string }) {
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => {
       clearInterval(timer);
-      clearInterval(snapshots);
+      clearInterval(sync);
       window.removeEventListener("beforeunload", onBeforeUnload);
     };
-  }, [phase, postTranscript]);
+  }, [phase, postTranscript, refreshState]);
 
   // Desmontou com sessão aberta: fecha tudo.
   React.useEffect(() => {
