@@ -137,6 +137,8 @@ export function VoiceBriefing({ token }: { token: string }) {
   const heardUserRef = React.useRef(false);
   const setupTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const nudgeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openAtRef = React.useRef(0);
+  const autoRetriedRef = React.useRef(false);
   const idRef = React.useRef(0);
   const transcriptRef = React.useRef<TranscriptEntry[]>([]);
 
@@ -379,6 +381,7 @@ export function VoiceBriefing({ token }: { token: string }) {
     if (message.setupComplete) {
       setConnected(true);
       connectedRef.current = true;
+      console.info(`[voice] setup concluído em ${Date.now() - openAtRef.current} ms`);
       if (setupTimerRef.current) {
         clearTimeout(setupTimerRef.current);
         setupTimerRef.current = null;
@@ -506,8 +509,10 @@ export function VoiceBriefing({ token }: { token: string }) {
     }
   }, [token]);
 
-  async function start() {
+  async function start(opts?: { auto?: boolean }) {
     abandonPreviousSession();
+    // Toque manual zera a auto-tentativa; a vigia usa uma vez (auto: true).
+    if (!opts?.auto) autoRetriedRef.current = false;
     setError(null);
     setMicDenied(false);
     transcriptRef.current = [];
@@ -602,6 +607,7 @@ export function VoiceBriefing({ token }: { token: string }) {
           onopen: () => {
             setPhase("live");
             liveRef.current = true;
+            openAtRef.current = Date.now();
             mic.start(stream, (b64) => {
               try {
                 sessionRef.current?.sendRealtimeInput({
@@ -619,6 +625,14 @@ export function VoiceBriefing({ token }: { token: string }) {
               if (intentionalCloseRef.current || !liveRef.current) return;
               if (connectedRef.current) return;
               console.error("[voice] setup da sessão Live não concluiu em 20 s");
+              // Redes móveis às vezes passam na segunda tentativa: tenta uma
+              // vez sozinho com token novo antes de pedir para o usuário.
+              if (!autoRetriedRef.current) {
+                autoRetriedRef.current = true;
+                console.info("[voice] tentando de novo automaticamente…");
+                void start({ auto: true });
+                return;
+              }
               intentionalCloseRef.current = true;
               liveRef.current = false;
               try {
@@ -761,7 +775,7 @@ export function VoiceBriefing({ token }: { token: string }) {
             error={error}
             micDenied={micDenied}
             textUrl={textUrl}
-            onStart={start}
+            onStart={() => void start()}
           />
         ) : null}
 
@@ -793,7 +807,7 @@ export function VoiceBriefing({ token }: { token: string }) {
         ) : null}
 
         {phase === "ended" ? (
-          <EndedView reason={endReason} savedFields={savedFields} textUrl={textUrl} onRestart={start} />
+          <EndedView reason={endReason} savedFields={savedFields} textUrl={textUrl} onRestart={() => void start()} />
         ) : null}
       </main>
     </div>
