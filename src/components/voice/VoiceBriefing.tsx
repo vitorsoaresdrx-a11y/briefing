@@ -83,6 +83,11 @@ export function VoiceBriefing({ token }: { token: string }) {
   const wakeLockRef = React.useRef<WakeLockSentinelLike | null>(null);
   const intentionalCloseRef = React.useRef(false);
   const liveRef = React.useRef(false);
+  const connectedRef = React.useRef(false);
+  const heardModelRef = React.useRef(false);
+  const heardUserRef = React.useRef(false);
+  const setupTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nudgeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const idRef = React.useRef(0);
   const transcriptRef = React.useRef<TranscriptEntry[]>([]);
 
@@ -131,7 +136,19 @@ export function VoiceBriefing({ token }: { token: string }) {
     [token],
   );
 
-  function cleanupAudio() {
+  const clearSessionTimers = React.useCallback(() => {
+    if (setupTimerRef.current) {
+      clearTimeout(setupTimerRef.current);
+      setupTimerRef.current = null;
+    }
+    if (nudgeTimerRef.current) {
+      clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = null;
+    }
+  }, []);
+
+  const cleanupAudio = React.useCallback(() => {
+    clearSessionTimers();
     micRef.current?.stop();
     micRef.current = null;
     playerRef.current?.close();
@@ -140,6 +157,24 @@ export function VoiceBriefing({ token }: { token: string }) {
       wakeLockRef.current.release().catch(() => undefined);
       wakeLockRef.current = null;
     }
+  }, [clearSessionTimers]);
+
+  /** Fecha qualquer sessão anterior (cliques repetidos em iniciar). */
+  function abandonPreviousSession() {
+    intentionalCloseRef.current = true;
+    liveRef.current = false;
+    clearSessionTimers();
+    try {
+      sessionRef.current?.close();
+    } catch {
+      // noop
+    }
+    sessionRef.current = null;
+    micRef.current?.stop();
+    micRef.current = null;
+    playerRef.current?.close();
+    playerRef.current = null;
+    intentionalCloseRef.current = false;
   }
 
   async function finishSession(reason: EndReason) {
@@ -159,6 +194,7 @@ export function VoiceBriefing({ token }: { token: string }) {
     cleanupAudio();
     setSpeaking(false);
     setConnected(false);
+    connectedRef.current = false;
     // Snapshot final da transcrição para a auditoria (best-effort).
     await postTranscript(true);
     setEndReason(reason);
@@ -281,6 +317,37 @@ export function VoiceBriefing({ token }: { token: string }) {
 
     if (message.setupComplete) {
       setConnected(true);
+      connectedRef.current = true;
+      if (setupTimerRef.current) {
+        clearTimeout(setupTimerRef.current);
+        setupTimerRef.current = null;
+      }
+      // Se ninguém falou nada em alguns segundos, cutuca a IA para
+      // cumprimentar e fazer a primeira pergunta (ela às vezes espera
+      // o cliente começar).
+      if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = setTimeout(() => {
+        nudgeTimerRef.current = null;
+        if (!liveRef.current || intentionalCloseRef.current) return;
+        if (heardModelRef.current || heardUserRef.current) return;
+        try {
+          sessionRef.current?.sendClientContent({
+            turns: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: "[sistema: o cliente entrou na chamada e está ouvindo em silêncio. Cumprimente e faça a primeira pergunta do roteiro agora.]",
+                  },
+                ],
+              },
+            ],
+            turnComplete: true,
+          });
+        } catch {
+          // Sessão fechando — nada a fazer.
+        }
+      }, 8000);
       return;
     }
     if (message.sessionResumptionUpdate) return;
@@ -307,9 +374,11 @@ export function VoiceBriefing({ token }: { token: string }) {
     if (!content) return;
 
     if (content.inputTranscription?.text) {
+      heardUserRef.current = true;
       pushTranscript("voce", content.inputTranscription.text);
     }
     if (content.outputTranscription?.text) {
+      heardModelRef.current = true;
       pushTranscript("ia", content.outputTranscription.text);
     }
 
@@ -317,6 +386,7 @@ export function VoiceBriefing({ token }: { token: string }) {
     for (const part of parts) {
       const data = part.inlineData?.data;
       if (data) {
+        heardModelRef.current = true;
         try {
           if (!playerRef.current) playerRef.current = new AudioOutPlayer();
           playerRef.current.enqueue(data);
@@ -337,6 +407,7 @@ export function VoiceBriefing({ token }: { token: string }) {
   }
 
   async function start() {
+    abandonPreviousSession();
     setError(null);
     setMicDenied(false);
     transcriptRef.current = [];
@@ -344,6 +415,9 @@ export function VoiceBriefing({ token }: { token: string }) {
     setPendingFields([]);
     setVoiceFiles([]);
     setConnected(false);
+    connectedRef.current = false;
+    heardModelRef.current = false;
+    heardUserRef.current = false;
     setSpeaking(false);
     setElapsed(0);
     intentionalCloseRef.current = false;
@@ -459,6 +533,28 @@ export function VoiceBriefing({ token }: { token: string }) {
                 // Sessão fechando — ignora pedaços restantes.
               }
             });
+            // Vigia do setup: se o Google não concluir em 20 s, desiste
+            // com mensagem clara em vez de travar no "Conectando…".
+            if (setupTimerRef.current) clearTimeout(setupTimerRef.current);
+            setupTimerRef.current = setTimeout(() => {
+              setupTimerRef.current = null;
+              if (intentionalCloseRef.current || !liveRef.current) return;
+              if (connectedRef.current) return;
+              console.error("[voice] setup da sessão Live não concluiu em 20 s");
+              intentionalCloseRef.current = true;
+              liveRef.current = false;
+              try {
+                sessionRef.current?.close();
+              } catch {
+                // noop
+              }
+              sessionRef.current = null;
+              cleanupAudio();
+              setError(
+                "O serviço de voz demorou a responder e a tentativa foi cancelada. Tente de novo em instantes.",
+              );
+              setPhase("intro");
+            }, 20000);
           },
           onmessage: handleServerMessage,
           onerror: (e) => {
@@ -557,7 +653,7 @@ export function VoiceBriefing({ token }: { token: string }) {
       sessionRef.current = null;
       cleanupAudio();
     };
-  }, []);
+  }, [cleanupAudio]);
 
   return (
     <div className="flex min-h-full flex-col bg-black text-white">
