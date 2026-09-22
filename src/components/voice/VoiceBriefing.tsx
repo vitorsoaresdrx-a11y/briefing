@@ -91,12 +91,8 @@ function normalizeWords(s: string): string[] {
  * dela com o texto de cada pergunta pendente. Evita que o painel da tela
  * fique preso numa pergunta antiga quando a conversa já avançou.
  */
-function detectCurrentQuestion(pending: string[], entries: TranscriptEntry[]): string | null {
-  const recent = entries
-    .filter((e) => e.role === "ia")
-    .slice(-2)
-    .map((e) => e.text)
-    .join(" ");
+function detectCurrentQuestion(pending: string[], recentIa: string[]): string | null {
+  const recent = recentIa.join(" ");
   const words = new Set(normalizeWords(recent));
   if (words.size === 0) return null;
   let best: string | null = null;
@@ -124,7 +120,8 @@ export function VoiceBriefing({ token }: { token: string }) {
   const [speaking, setSpeaking] = React.useState(false);
   const [savedFields, setSavedFields] = React.useState<SavedField[]>([]);
   const [pendingFields, setPendingFields] = React.useState<string[]>([]);
-  const [transcriptVersion, setTranscriptVersion] = React.useState(0);
+  /** Últimas falas da IA (para detectar a pergunta atual — só estado, sem ref). */
+  const [assistantSnippets, setAssistantSnippets] = React.useState<string[]>([]);
   const [voiceFiles, setVoiceFiles] = React.useState<FileInfo[]>([]);
   const [endReason, setEndReason] = React.useState<EndReason>("manual");
   const [elapsed, setElapsed] = React.useState(0);
@@ -151,7 +148,7 @@ export function VoiceBriefing({ token }: { token: string }) {
    * pendente com widget.
    */
   const current = React.useMemo(() => {
-    const detected = detectCurrentQuestion(pendingFields, transcriptRef.current);
+    const detected = detectCurrentQuestion(pendingFields, assistantSnippets);
     if (detected) {
       const w = voiceWidgetFor(detected);
       if (w && w.widget.kind !== "none") return w;
@@ -161,9 +158,7 @@ export function VoiceBriefing({ token }: { token: string }) {
       if (w && w.widget.kind !== "none") return w;
     }
     return null;
-    // transcriptRef é lido de propósito via transcriptVersion (tick de mudança).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingFields, transcriptVersion]);
+  }, [pendingFields, assistantSnippets]);
 
   const getMicLevel = React.useCallback(() => micRef.current?.getLevel() ?? 0, []);
 
@@ -176,7 +171,9 @@ export function VoiceBriefing({ token }: { token: string }) {
       ...transcriptRef.current.slice(-99),
       { id: idRef.current, role, text: clean },
     ];
-    setTranscriptVersion((v) => v + 1);
+    if (role === "ia") {
+      setAssistantSnippets((prev) => [...prev.slice(-1), clean]);
+    }
   }
 
   /** Envia a transcrição acumulada para a auditoria (best-effort). */
@@ -514,7 +511,7 @@ export function VoiceBriefing({ token }: { token: string }) {
     setError(null);
     setMicDenied(false);
     transcriptRef.current = [];
-    setTranscriptVersion(0);
+    setAssistantSnippets([]);
     setSavedFields([]);
     setPendingFields([]);
     setVoiceFiles([]);
